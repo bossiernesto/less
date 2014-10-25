@@ -2,83 +2,129 @@ package org.uqbar.less.obj.eval
 
 object Eval {
 
-	var memory: Map[Symbol, O] = Map()
-	var lastId = 0
+	protected def eval(state: State): State = {
+		val State(locals, executionStacks @ stack :: previousStacks, pc, bytecode, memory) = state
 
-	def apply(bytecode: Bytecode*) = eval(List(Frame(Map(), Nil, 0)), bytecode)
+		bytecode(pc) match {
+			case ASIGN(argName) =>
+				val value :: rest = stack
+				state.copy(
+					locals = locals.updated(argName, value),
+					executionStacks = rest :: previousStacks,
+					pc = pc + 1
+				)
+			case EQ =>
+				val left :: right :: rest = stack
+				state.copy(
+					executionStacks = ((if (left == right) 1 else 0) :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-	def eval(frameStack: List[Frame], bytecodeSeq: Seq[Bytecode]): List[Frame] = frameStack match {
-		case (frame @ Frame(locals, stack, pc)) :: prevFrames =>
-			val nextFrame = bytecodeSeq(pc) match {
-				case ASIGN(argName) =>
-					val value :: rest = stack
-					Frame(locals.updated(argName, value), rest, pc)
+			case GET(slotName) =>
+				val (target: Symbol) :: rest = stack
+				state.copy(
+					executionStacks = (memory[O](target)(slotName) :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case EQ =>
-					val left :: right :: rest = stack
-					Frame(locals, (if (left == right) 1 else 0) :: rest, pc)
+			case SET(slotName: Symbol) =>
+				val (target: Symbol) :: value :: rest = stack
+				state.copy(
+					memory = memory.updated(target, memory[O](target).updated(slotName, value)),
+					executionStacks = rest :: previousStacks,
+					pc = pc + 1
+				)
 
-				case GET(slotName) =>
-					val (target: Symbol) :: rest = stack
-					Frame(locals, memory(target)(slotName) :: rest, pc)
+			case SEND(messageName, argumentCount) =>
+				val (target: Symbol) :: restWithArgs = stack
+				val (arguments, rest) = restWithArgs.splitAt(argumentCount)
+				val nextLocals = (target :: arguments).zipWithIndex.map{ case (a, i) => (Symbol(s"$$$i"), a) }.toMap
+				val State(_, (result :: _) :: _, _, _, _) = eval(State(nextLocals, Nil :: executionStacks, 0, memory[O](target)(messageName).asInstanceOf[M], memory))
 
-				case SET(slotName: Symbol) =>
-					val (target: Symbol) :: value :: rest = stack
-					memory = memory.updated(target, memory(target).updated(slotName, value))
-					Frame(locals, rest, pc)
+				state.copy(
+					executionStacks = (result :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case SEND(messageName, argumentCount) =>
-					val (target: Symbol) :: restWithArgs = stack
-					val (arguments, rest) = restWithArgs.splitAt(argumentCount)
-					val nextLocals = (target :: arguments).zipWithIndex.map{ case (a, i) => (Symbol(s"$$$i"), a) }.toMap
-					val Frame(_, result :: _, pc) :: _ = eval(Frame(nextLocals, Nil, 0) :: frameStack, memory(target)(messageName).asInstanceOf[M])
-					Frame(locals, result :: rest, pc)
+			case MKA(length) =>
+				val newArray = (0 until length).map(n => Symbol(n.toString) -> null).toMap
+				val (newMemory, newArrayId) = memory.insert(newArray)
 
-				case MKA(length) =>
-					val nextId = Symbol(s"#$lastId")
-					lastId += 1
-					val newArray = (0 until length).map(n => Symbol(n.toString) -> null).toMap
-					memory = memory + (nextId -> newArray)
-					Frame(locals, nextId :: stack, pc)
+				state.copy(
+					executionStacks = (newArrayId :: stack) :: previousStacks,
+					memory = newMemory,
+					pc = pc + 1
+				)
 
-				case LENGTH =>
-					val (target: Symbol) :: rest = stack
-					val length = memory(target).keys.map(_.toString.tail.toInt).max + 1
-					Frame(locals, length :: rest, pc)
+			case LENGTH =>
+				val (target: Symbol) :: rest = stack
+				val length = memory[O](target).keys.map(_.toString.tail.toInt).max + 1
+				state.copy(
+					executionStacks = (length :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case AT =>
-					val (target: Symbol) :: (index: Int) :: rest = stack
-					val elem = memory(target)(Symbol(index.toString))
-					Frame(locals, elem :: rest, pc)
+			case AT =>
+				val (target: Symbol) :: (index: Int) :: rest = stack
+				val elem = memory[O](target)(Symbol(index.toString))
+				state.copy(
+					executionStacks = (elem :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case PUT =>
-					val (target: Symbol) :: value :: (index: Int) :: rest = stack
-					memory = memory.updated(target, memory(target).updated(Symbol(index.toString), value))
-					Frame(locals, rest, pc)
+			case PUT =>
+				val (target: Symbol) :: value :: (index: Int) :: rest = stack
+				state.copy(
+					memory = memory.updated(target, memory[O](target).updated(Symbol(index.toString), value)),
+					executionStacks = rest :: previousStacks,
+					pc = pc + 1
+				)
 
-				case ADD =>
-					val (left: Int) :: (right: Int) :: rest = stack
-					Frame(locals, left + right :: rest, pc)
+			case ADD =>
+				val (left: Int) :: (right: Int) :: rest = stack
+				state.copy(
+					executionStacks = (left + right :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case MUL =>
-					val (left: Int) :: (right: Int) :: rest = stack
-					Frame(locals, left * right :: rest, pc)
+			case MUL =>
+				val (left: Int) :: (right: Int) :: rest = stack
+				state.copy(
+					executionStacks = (left * right :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case GRTHN =>
-					val (left: Int) :: (right: Int) :: rest = stack
-					Frame(locals, (if (left > right) 1 else 0) :: rest, pc)
+			case GRTHN =>
+				val (left: Int) :: (right: Int) :: rest = stack
+				state.copy(
+					executionStacks = ((if (left > right) 1 else 0) :: rest) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case PUSHN(n) => Frame(locals, n :: stack, pc)
+			case PUSHN(n) =>
+				state.copy(
+					executionStacks = (n :: stack) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case PUSHR(id) => Frame(locals, id :: stack, pc)
+			case PUSHR(id) =>
+				state.copy(
+					executionStacks = (id :: stack) :: previousStacks,
+					pc = pc + 1
+				)
 
-				case IFNZ(jump) =>
-					val condition :: rest = stack
-					Frame(locals, rest, pc + 1 + (if (condition == 0) jump else 0))
+			case IFNZ(jump) =>
+				val condition :: rest = stack
+				state.copy(
+					executionStacks = rest :: previousStacks,
+					pc = pc + 1 + (if (condition == 0) jump else 0)
+				)
 
-				case GOTO(jump) => Frame(locals, stack, pc + 1 + jump)
-			}
+			case GOTO(jump) =>
+				state.copy(
+					pc = pc + 1 + jump
+				)
+		}
 
-			nextFrame :: prevFrames
 	}
 }
