@@ -12,12 +12,10 @@ class ObjTest extends FreeSpec with Matchers with BeforeAndAfter {
 	"The program" - {
 		"5" - {
 			val program = N(5)
-			"should result in 5" in { Eval(program) should be (Success(Eval.baseWorld.copy(result = N(5)))) }
 		}
 
 		"2 + (3 * 4)" - {
 			val program = Add(N(2), Mul(N(3), N(4)))
-			"should result in 14" in { Eval(program) should be (Success(Eval.baseWorld.copy(result = N(14)))) }
 		}
 
 		"Sum all numbers in [3,7,(6 + 2)]" - {

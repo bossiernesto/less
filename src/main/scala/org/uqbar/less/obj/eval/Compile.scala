@@ -12,7 +12,7 @@ object Compile {
 		case R(ID(id)) => previous :+ PUSHR(id)
 		case N(n) => previous :+ PUSHN(n)
 		case A(values) => (compile(previous, values.reverse) :+ MKA(values.size)) ++ (0 until values.size flatMap { n => Seq(PUSHN(n), PUT) })
-		case Assign(ID(target), value) => compile(previous, value) :+ ASIGN(target)
+		case Assign(ID(target), value) => compile(previous, value) :+ STORE(target)
 		case Eq(left, right) => compile(compile(previous, right), left) :+ EQ
 		case Get(targetR, ID(slotName)) => compile(previous, targetR) :+ GET(slotName)
 		case Set(targetR, ID(slotName), value) => compile(compile(previous, value), targetR) :+ SET(slotName)

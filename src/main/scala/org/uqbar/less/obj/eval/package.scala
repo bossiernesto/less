@@ -8,7 +8,7 @@ package object eval {
 	type Referenceable = Any
 	type Stack[T] = List[T]
 
-	case class Memory(value: Map[Symbol, Referenceable]) {
+	case class Memory(value: Map[Symbol, Referenceable] = Map()) {
 		def apply[T](key: Symbol) = value(key).asInstanceOf[T]
 
 		def insert(elem: Referenceable) = {
@@ -19,5 +19,5 @@ package object eval {
 		def updated(key: Symbol, elem: Referenceable) = copy(value.updated(key, elem))
 	}
 
-	case class State(locals: Map[Symbol, Referenceable], executionStacks: Stack[Stack[Referenceable]], pc: Int, bytecode: Seq[Bytecode], memory: Memory)
+	case class State(locals: Map[Symbol, Referenceable], stack: Stack[Referenceable], pc: Int, bytecode: Seq[Bytecode], memory: Memory)
 }

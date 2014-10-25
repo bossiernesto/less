@@ -1,7 +1,8 @@
 package org.uqbar.less.obj.eval
 
 trait Bytecode
-case class ASIGN(argName: Symbol) extends Bytecode
+case class LOAD(argName: Symbol) extends Bytecode
+case class STORE(argName: Symbol) extends Bytecode
 case object EQ extends Bytecode
 case class GET(slotName: Symbol) extends Bytecode
 case class SET(slotName: Symbol) extends Bytecode
