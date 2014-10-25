@@ -9,9 +9,10 @@ object Compile {
 	protected def compile(previous: Seq[Bytecode], sentences: Seq[Sentence]): Seq[Bytecode] = (previous /: sentences)(compile)
 
 	protected def compile(previous: Seq[Bytecode], sentence: Sentence): Seq[Bytecode] = sentence match {
-		case R(ID(id)) => previous :+ PUSHR(id)
-		case N(n) => previous :+ PUSHN(n)
-		case A(values) => (compile(previous, values.reverse) :+ MKA(values.size)) ++ (0 until values.size flatMap { n => Seq(PUSHN(n), PUT) })
+		case R(ID(id)) => previous :+ LOAD(id)
+		case N(n) => previous :+ PUSH(n)
+		case A(values) => (compile(previous, values.reverse) :+ MKA(values.size)) ++ (0 until values.size flatMap { n => Seq(PUSH(n), PUT) })
+
 		case Assign(ID(target), value) => compile(previous, value) :+ STORE(target)
 		case Eq(left, right) => compile(compile(previous, right), left) :+ EQ
 		case Get(targetR, ID(slotName)) => compile(previous, targetR) :+ GET(slotName)

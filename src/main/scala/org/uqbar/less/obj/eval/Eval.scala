@@ -2,7 +2,7 @@ package org.uqbar.less.obj.eval
 
 object Eval {
 
-	def apply(locals: Map[Symbol, Referenceable] = Map(), stack: Stack[Referenceable] = Nil, memory: Memory = Memory())(bytecode: Bytecode*) =
+	def apply(locals: Locals = Map(), stack: Stack = Nil, memory: Memory = Memory())(bytecode: Bytecode*) =
 		eval(State(locals, stack, 0, bytecode, memory))
 
 	protected def eval(state: State): State = {
@@ -29,14 +29,14 @@ object Eval {
 				)
 
 			case GET(slotName) =>
-				val (target: Symbol) :: rest = stack
+				val target :: rest = stack
 				state.copy(
 					stack = memory[O](target)(slotName) :: rest,
 					pc = pc + 1
 				)
 
 			case SET(slotName: Symbol) =>
-				val (target: Symbol) :: value :: rest = stack
+				val target :: value :: rest = stack
 				state.copy(
 					memory = memory.updated(target, memory[O](target).updated(slotName, value)),
 					stack = rest,
@@ -44,11 +44,11 @@ object Eval {
 				)
 
 			case SEND(messageName, argumentCount) =>
-				val (target: Symbol) :: restWithArgs = stack
+				val target :: restWithArgs = stack
 				val (arguments, rest) = restWithArgs.splitAt(argumentCount)
 				val nextLocals = (target :: arguments).zipWithIndex.map{ case (a, i) => (Symbol(s"$$$i"), a) }.toMap
-				val nextBytecode = memory[O](target)(messageName).asInstanceOf[M]
-				val State(_, result :: _, _, _, _) = eval(State(nextLocals, Nil :: stack, 0, nextBytecode, memory))
+				val nextBytecode = memory[M](memory[O](target)(messageName)).bytecode
+				val State(_, result :: _, _, _, _) = eval(State(nextLocals, Nil, 0, nextBytecode, memory))
 
 				state.copy(
 					stack = result :: rest,
@@ -56,7 +56,7 @@ object Eval {
 				)
 
 			case MKA(length) =>
-				val newArray = (0 until length).map(n => Symbol(n.toString) -> null).toMap
+				val newArray = O((0 until length).map(n => Symbol(n.toString) -> -1).toMap)
 				val (newMemory, newArrayId) = memory.insert(newArray)
 
 				state.copy(
@@ -66,15 +66,15 @@ object Eval {
 				)
 
 			case LENGTH =>
-				val (target: Symbol) :: rest = stack
-				val length = memory[O](target).keys.map(_.toString.tail.toInt).max + 1
+				val target :: rest = stack
+				val length = memory[O](target).slots.keys.map(_.toString.tail.toInt).max + 1
 				state.copy(
 					stack = length :: rest,
 					pc = pc + 1
 				)
 
 			case AT =>
-				val (target: Symbol) :: (index: Int) :: rest = stack
+				val target :: index :: rest = stack
 				val elem = memory[O](target)(Symbol(index.toString))
 				state.copy(
 					stack = elem :: rest,
@@ -82,7 +82,7 @@ object Eval {
 				)
 
 			case PUT =>
-				val (target: Symbol) :: value :: (index: Int) :: rest = stack
+				val target :: value :: (index: Int) :: rest = stack
 				state.copy(
 					memory = memory.updated(target, memory[O](target).updated(Symbol(index.toString), value)),
 					stack = rest,
@@ -110,15 +110,9 @@ object Eval {
 					pc = pc + 1
 				)
 
-			case PUSHN(n) =>
+			case PUSH(v) =>
 				state.copy(
-					stack = n :: stack,
-					pc = pc + 1
-				)
-
-			case PUSHR(id) =>
-				state.copy(
-					stack = id :: stack,
+					stack = v :: stack,
 					pc = pc + 1
 				)
 

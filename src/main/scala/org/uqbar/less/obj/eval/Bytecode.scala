@@ -14,7 +14,6 @@ case object PUT extends Bytecode
 case object ADD extends Bytecode
 case object MUL extends Bytecode
 case object GRTHN extends Bytecode
-case class PUSHN(n: Int) extends Bytecode
-case class PUSHR(id: Symbol) extends Bytecode
+case class PUSH(v: Int) extends Bytecode
 case class IFNZ(jump: Int) extends Bytecode
 case class GOTO(jump: Int) extends Bytecode
