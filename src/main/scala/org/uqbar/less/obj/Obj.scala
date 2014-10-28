@@ -1,6 +1,5 @@
 package org.uqbar.less.obj
 
-import scala.collection.mutable.{ Map => MutableMap }
 import scala.language.implicitConversions
 
 case class ID(value: Symbol)
