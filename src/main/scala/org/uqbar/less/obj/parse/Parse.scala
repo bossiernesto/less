@@ -19,11 +19,11 @@ trait Parse extends RegexParsers {
 	protected lazy val eqExp = addExp ~ ("==" ~> addExp).* ^^ { case l ~ r => (l /: r)(Eq) }
 	protected lazy val addExp = mulExp ~ ("+" ~> mulExp).* ^^ { case l ~ r => (l /: r)(Add) }
 	protected lazy val mulExp = primaryExp ~ ("*" ~> primaryExp).* ^^ { case l ~ r => (l /: r)(Mul) }
-	protected lazy val primaryExp: Parser[Sentence] = "(" ~> expression <~ ")" | number | reference | ("-" ~> primaryExp ^^ { Mul(_, N(-1)) })
+	protected lazy val primaryExp: Parser[Sentence] = "(" ~> expression <~ ")" | number | reference | ("-" ~> primaryExp ^^ { Mul(N(-1), _) })
 
 	protected lazy val asign = (identifier <~ assignOp).? ~ sentence <~ lineSep ^^ { case maybeId ~ value => maybeId.fold(value)(Assign(_, value)) }
 
-	protected lazy val sentence: Parser[Sentence] = number | array | reference
+	protected lazy val sentence: Parser[Sentence] = expression | array
 
 	protected lazy val params = "(" ~> repsep(sentence, sentenceSep) <~ ")"
 	protected lazy val messageSend = (sentence <~ ".") ~ identifier ~ params ^^ { case obj ~ msg ~ params => Send(obj, msg, params) }

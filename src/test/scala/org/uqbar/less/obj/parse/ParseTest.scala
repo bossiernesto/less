@@ -64,6 +64,7 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				" (4 + 2) * 3" should beParsedTo (Mul(Add(N(4), N(2)), N(3)))
 
 				" 10 + x == y * 5 + 2 * 3" should beParsedTo (Eq(Add(N(10), R('x)), Add(Mul(R('y), N(5)), Mul(N(2), N(3)))))
+				" 10 + -x == y * (5 + -2) * 3" should beParsedTo (Eq(Add(N(10), Mul(N(-1), R('x))), Mul(Mul(R('y), Add(N(5), N(-2))), N(3))))
 			}
 		}
 	}

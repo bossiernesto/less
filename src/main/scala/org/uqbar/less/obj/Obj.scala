@@ -13,6 +13,7 @@ case class A(values: Seq[Sentence]) extends Entity
 
 case class Assign(target: ID, value: Sentence) extends Sentence
 case class Eq(left: Sentence, right: Sentence) extends Sentence
+
 case class Get(targetR: Sentence, slotName: ID) extends Sentence
 case class Set(targetR: Sentence, slotName: ID, value: Sentence) extends Sentence
 case class Send(targetR: Sentence, messageName: ID, arguments: Seq[Sentence]) extends Sentence
