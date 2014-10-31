@@ -23,8 +23,17 @@ case class At(targetA: Sentence, indexN: Sentence) extends Sentence
 case class Put(targetA: Sentence, indexN: Sentence, value: Sentence) extends Sentence
 
 case class Add(leftN: Sentence, rightN: Sentence) extends Sentence
+case class Sub(leftN: Sentence, rightN: Sentence) extends Sentence
 case class Mul(leftN: Sentence, rightN: Sentence) extends Sentence
+case class Div(leftN: Sentence, rightN: Sentence) extends Sentence
 case class Greater(leftN: Sentence, rightN: Sentence) extends Sentence
+case class GreaterOrEq(leftN: Sentence, rightN: Sentence) extends Sentence
+case class Lesser(leftN: Sentence, rightN: Sentence) extends Sentence
+case class LesserOrEq(leftN: Sentence, rightN: Sentence) extends Sentence
+
+case class Not(conditionN: Sentence) extends Sentence
+case class Or(leftN: Sentence, rightN: Sentence) extends Sentence
+case class And(leftN: Sentence, rightN: Sentence) extends Sentence
 case class If(conditionN: Sentence, bodyTrue: Seq[Sentence], bodyFalse: Seq[Sentence]) extends Sentence
 case class While(conditionN: Sentence, body: Seq[Sentence]) extends Sentence
 
