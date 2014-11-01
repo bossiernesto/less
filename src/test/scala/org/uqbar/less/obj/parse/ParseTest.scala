@@ -46,8 +46,11 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 					""" #[1,2,3][4] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), N(4)))
 					""" #[1,2,3][4 + 5] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), Add(N(4), N(5))))
-
 					""" #[#[1,2]][0][1] """ should beParsedTo (At(At(A(Seq(A(Seq(N(1), N(2))))), N(0)), N(1)))
+
+					""" #[].length """ should beParsedTo (Length(A(Seq())))
+					""" #[1,1+1,3].length """ should beParsedTo (Length(A(Seq(N(1), Add(N(1), N(1)), N(3)))))
+					""" #[#[1,2]][0][1].length """ should beParsedTo (Length(At(At(A(Seq(A(Seq(N(1), N(2))))), N(0)), N(1))))
 
 				}
 
@@ -152,17 +155,25 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				implicit val parser = messageChain
 
 				""" x """ should beParsedTo (R('x))
+
+				""" x.a """ should beParsedTo(Get(R('x), 'a))
+				""" x.a.b """ should beParsedTo(Get(Get(R('x), 'a), 'b))
+
 				""" x.m() """ should beParsedTo (Send(R('x), 'm, Nil))
 				""" x.m(1) """ should beParsedTo (Send(R('x), 'm, N(1) :: Nil))
 				""" x.m(1,2) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Nil))
 				""" x.m(1,2,y.n(z)) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Send(R('y), 'n, R('z) :: Nil) :: Nil))
 				""" x.m(1).n(y) """ should beParsedTo (Send(Send(R('x), 'm, N(1) :: Nil), 'n, R('y) :: Nil))
+
+				""" x.m(1).a.n(2 + 3) """ should beParsedTo (Send(Get(Send(R('x), 'm, N(1) :: Nil), 'a), 'n, Add(N(2), N(3)) :: Nil))
 			}
 
-			"array length" in {}
-			"attribute" - {
-				"get" in {}
-				"set" in {}
+			"attribute set" in {
+				implicit val parser = attributeSet
+
+				""" x.a = 1; """ should beParsedTo(Set(R('x), 'a, N(1)))
+				""" x.m().a = 1 + 2; """ should beParsedTo (Set(Send(R('x), 'm, Nil), 'a, Add(N(1), N(2))))
+				""" x.m().a = y.n(1) + 2; """ should beParsedTo (Set(Send(R('x), 'm, Nil), 'a, Add(Send(R('y), 'n, 1 :: Nil), N(2))))
 			}
 		}
 	}
