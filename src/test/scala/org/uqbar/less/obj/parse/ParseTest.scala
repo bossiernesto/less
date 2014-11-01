@@ -17,18 +17,18 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 			"references" in {
 				implicit val parser = reference
 
-				""" _ """ should beParsedTo (R('_))
-				""" x """ should beParsedTo (R('x))
-				""" foo """ should beParsedTo (R('foo))
-				""" foo_bar """ should beParsedTo (R('foo_bar))
+				""" _ """ should beParsedTo ('_)
+				""" x """ should beParsedTo ('x)
+				""" foo """ should beParsedTo ('foo)
+				""" foo_bar """ should beParsedTo ('foo_bar)
 			}
 
 			"numbers" in {
 				implicit val parser = number
 
-				""" 0 """ should beParsedTo (N(0))
-				""" 192 """ should beParsedTo (N(192))
-				""" -10 """ should beParsedTo (N(-10))
+				""" 0 """ should beParsedTo (0)
+				""" 192 """ should beParsedTo (192)
+				""" -10 """ should beParsedTo (-10)
 			}
 
 			"arrays" - {
@@ -36,28 +36,27 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				"at" in {
 					implicit val parser = arrayAt
 
-					""" #[] """ should beParsedTo (A(Seq()))
-					""" #[1] """ should beParsedTo (A(Seq(N(1))))
-					""" #[1,2,3] """ should beParsedTo (A(Seq(N(1), N(2), N(3))))
-					""" #[1,1+1,3] """ should beParsedTo (A(Seq(N(1), Add(N(1), N(1)), N(3))))
-					""" #[#[1,2],#[3,4]] """ should beParsedTo (A(Seq(A(Seq(N(1), N(2))), A(Seq(N(3), N(4))))))
-					""" #[#[]] """ should beParsedTo (A(Seq(A(Seq()))))
-					""" #[#[],#[]] """ should beParsedTo (A(Seq(A(Seq()), A(Seq()))))
+					""" #[] """ should beParsedTo (%())
+					""" #[1] """ should beParsedTo (%(1))
+					""" #[1,2,3] """ should beParsedTo (%(1, 2, 3))
+					""" #[1,1+1,3] """ should beParsedTo (%(1, Add(1, 1), 3))
+					""" #[#[1,2],#[3,4]] """ should beParsedTo (%(%(1, 2), %(3, 4)))
+					""" #[#[]] """ should beParsedTo (%(%()))
+					""" #[#[],#[]] """ should beParsedTo (%(%(), %()))
 
-					""" #[1,2,3][4] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), N(4)))
-					""" #[1,2,3][4 + 5] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), Add(N(4), N(5))))
-					""" #[#[1,2]][0][1] """ should beParsedTo (At(At(A(Seq(A(Seq(N(1), N(2))))), N(0)), N(1)))
+					""" #[1,2,3][4] """ should beParsedTo (At(%(1, 2, 3), 4))
+					""" #[1,2,3][4 + 5] """ should beParsedTo (At(%(1, 2, 3), Add(4, 5)))
+					""" #[#[1,2]][0][1] """ should beParsedTo (At(At(%(%(1, 2)), 0), 1))
 
-					""" #[].length """ should beParsedTo (Length(A(Seq())))
-					""" #[1,1+1,3].length """ should beParsedTo (Length(A(Seq(N(1), Add(N(1), N(1)), N(3)))))
-					""" #[#[1,2]][0][1].length """ should beParsedTo (Length(At(At(A(Seq(A(Seq(N(1), N(2))))), N(0)), N(1))))
-
+					""" #[].length """ should beParsedTo (Length(%()))
+					""" #[1,1+1,3].length """ should beParsedTo (Length(%(1, Add(1, 1), 3)))
+					""" #[#[1,2]][0][1].length """ should beParsedTo (Length(At(At(%(%(1, 2)), 0), 1)))
 				}
 
 				"put" in {
 					implicit val parser = arrayPut
 
-					""" #[1,2,3][4] = 5 + 6; """ should beParsedTo (Put(A(Seq(N(1), N(2), N(3))), N(4), Add(N(5), N(6))))
+					""" #[1,2,3][4] = 5 + 6; """ should beParsedTo (Put(%(1, 2, 3), 4, Add(5, 6)))
 				}
 
 			}
@@ -65,115 +64,115 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 			"aritmethic expressions" in {
 				implicit val parser = expression
 
-				" 2 && 3 " should beParsedTo (And(N(2), N(3)))
-				" 2 && 3 && 4" should beParsedTo (And(And(N(2), N(3)), N(4)))
-				" (2 && 3) && 4" should beParsedTo (And(And(N(2), N(3)), N(4)))
-				" 2 && (3 && 4)" should beParsedTo (And(N(2), And(N(3), N(4))))
+				" 2 && 3 " should beParsedTo (And(2, 3))
+				" 2 && 3 && 4" should beParsedTo (And(And(2, 3), 4))
+				" (2 && 3) && 4" should beParsedTo (And(And(2, 3), 4))
+				" 2 && (3 && 4)" should beParsedTo (And(2, And(3, 4)))
 
-				" 2 || 3 " should beParsedTo (Or(N(2), N(3)))
-				" 2 || 3 || 4" should beParsedTo (Or(Or(N(2), N(3)), N(4)))
-				" (2 || 3) || 4" should beParsedTo (Or(Or(N(2), N(3)), N(4)))
-				" 2 || (3 || 4)" should beParsedTo (Or(N(2), Or(N(3), N(4))))
+				" 2 || 3 " should beParsedTo (Or(2, 3))
+				" 2 || 3 || 4" should beParsedTo (Or(Or(2, 3), 4))
+				" (2 || 3) || 4" should beParsedTo (Or(Or(2, 3), 4))
+				" 2 || (3 || 4)" should beParsedTo (Or(2, Or(3, 4)))
 
-				" 2 + 3 " should beParsedTo (Add(N(2), N(3)))
-				" 2 + 3 + 4" should beParsedTo (Add(Add(N(2), N(3)), N(4)))
-				" (2 + 3) + 4" should beParsedTo (Add(Add(N(2), N(3)), N(4)))
-				" 2 + (3 + 4)" should beParsedTo (Add(N(2), Add(N(3), N(4))))
+				" 2 + 3 " should beParsedTo (Add(2, 3))
+				" 2 + 3 + 4" should beParsedTo (Add(Add(2, 3), 4))
+				" (2 + 3) + 4" should beParsedTo (Add(Add(2, 3), 4))
+				" 2 + (3 + 4)" should beParsedTo (Add(2, Add(3, 4)))
 
-				" 2 * 3 " should beParsedTo (Mul(N(2), N(3)))
-				" 2 * 3 * 4" should beParsedTo (Mul(Mul(N(2), N(3)), N(4)))
-				" (2 * 3) * 4" should beParsedTo (Mul(Mul(N(2), N(3)), N(4)))
-				" 2 * (3 * 4)" should beParsedTo (Mul(N(2), Mul(N(3), N(4))))
+				" 2 * 3 " should beParsedTo (Mul(2, 3))
+				" 2 * 3 * 4" should beParsedTo (Mul(Mul(2, 3), 4))
+				" (2 * 3) * 4" should beParsedTo (Mul(Mul(2, 3), 4))
+				" 2 * (3 * 4)" should beParsedTo (Mul(2, Mul(3, 4)))
 
-				" 2 / 3 " should beParsedTo (Div(N(2), N(3)))
-				" 2 / 3 / 4" should beParsedTo (Div(Div(N(2), N(3)), N(4)))
-				" (2 / 3) / 4" should beParsedTo (Div(Div(N(2), N(3)), N(4)))
-				" 2 / (3 / 4)" should beParsedTo (Div(N(2), Div(N(3), N(4))))
+				" 2 / 3 " should beParsedTo (Div(2, 3))
+				" 2 / 3 / 4" should beParsedTo (Div(Div(2, 3), 4))
+				" (2 / 3) / 4" should beParsedTo (Div(Div(2, 3), 4))
+				" 2 / (3 / 4)" should beParsedTo (Div(2, Div(3, 4)))
 
-				" 2 == 3 " should beParsedTo (Eq(N(2), N(3)))
-				" 2 == 3 + 4" should beParsedTo (Eq(N(2), Add(N(3), N(4))))
-				" 3 + 4 == 2" should beParsedTo (Eq(Add(N(3), N(4)), N(2)))
+				" 2 == 3 " should beParsedTo (Eq(2, 3))
+				" 2 == 3 + 4" should beParsedTo (Eq(2, Add(3, 4)))
+				" 3 + 4 == 2" should beParsedTo (Eq(Add(3, 4), 2))
 
-				" 2 != 3 " should beParsedTo (Not(Eq(N(2), N(3))))
-				" 2 != 3 + 4" should beParsedTo (Not(Eq(N(2), Add(N(3), N(4)))))
-				" 3 + 4 != 2" should beParsedTo (Not(Eq(Add(N(3), N(4)), N(2))))
+				" 2 != 3 " should beParsedTo (Not(Eq(2, 3)))
+				" 2 != 3 + 4" should beParsedTo (Not(Eq(2, Add(3, 4))))
+				" 3 + 4 != 2" should beParsedTo (Not(Eq(Add(3, 4), 2)))
 
-				" 2 > 3 " should beParsedTo (Greater(N(2), N(3)))
-				" 2 > 3 + 4" should beParsedTo (Greater(N(2), Add(N(3), N(4))))
-				" 3 + 4 > 2" should beParsedTo (Greater(Add(N(3), N(4)), N(2)))
+				" 2 > 3 " should beParsedTo (Greater(2, 3))
+				" 2 > 3 + 4" should beParsedTo (Greater(2, Add(3, 4)))
+				" 3 + 4 > 2" should beParsedTo (Greater(Add(3, 4), 2))
 
-				" 2 >= 3 " should beParsedTo (GreaterOrEq(N(2), N(3)))
-				" 2 >= 3 + 4" should beParsedTo (GreaterOrEq(N(2), Add(N(3), N(4))))
-				" 3 + 4 >= 2" should beParsedTo (GreaterOrEq(Add(N(3), N(4)), N(2)))
+				" 2 >= 3 " should beParsedTo (GreaterOrEq(2, 3))
+				" 2 >= 3 + 4" should beParsedTo (GreaterOrEq(2, Add(3, 4)))
+				" 3 + 4 >= 2" should beParsedTo (GreaterOrEq(Add(3, 4), 2))
 
-				" 2 < 3 " should beParsedTo (Lesser(N(2), N(3)))
-				" 2 < 3 + 4" should beParsedTo (Lesser(N(2), Add(N(3), N(4))))
-				" 3 + 4 < 2" should beParsedTo (Lesser(Add(N(3), N(4)), N(2)))
+				" 2 < 3 " should beParsedTo (Lesser(2, 3))
+				" 2 < 3 + 4" should beParsedTo (Lesser(2, Add(3, 4)))
+				" 3 + 4 < 2" should beParsedTo (Lesser(Add(3, 4), 2))
 
-				" 2 <= 3 " should beParsedTo (LesserOrEq(N(2), N(3)))
-				" 2 <= 3 + 4" should beParsedTo (LesserOrEq(N(2), Add(N(3), N(4))))
-				" 3 + 4 <= 2" should beParsedTo (LesserOrEq(Add(N(3), N(4)), N(2)))
+				" 2 <= 3 " should beParsedTo (LesserOrEq(2, 3))
+				" 2 <= 3 + 4" should beParsedTo (LesserOrEq(2, Add(3, 4)))
+				" 3 + 4 <= 2" should beParsedTo (LesserOrEq(Add(3, 4), 2))
 
-				" ! 2 > 3 " should beParsedTo (Not(Greater(N(2), N(3))))
-				" ! 2 != 3 " should beParsedTo (Not(Not(Eq(N(2), N(3)))))
-				" 2 != 3 && ! 5 > 7 " should beParsedTo (And(Not(Eq(N(2), N(3))), Not(Greater(N(5), N(7)))))
-				" 2 != 3 && ! 5 > 7 || 6 < 3 " should beParsedTo (Or(And(Not(Eq(N(2), N(3))), Not(Greater(N(5), N(7)))), Lesser(N(6), N(3))))
+				" ! 2 > 3 " should beParsedTo (Not(Greater(2, 3)))
+				" ! 2 != 3 " should beParsedTo (Not(Not(Eq(2, 3))))
+				" 2 != 3 && ! 5 > 7 " should beParsedTo (And(Not(Eq(2, 3)), Not(Greater(5, 7))))
+				" 2 != 3 && ! 5 > 7 || 6 < 3 " should beParsedTo (Or(And(Not(Eq(2, 3)), Not(Greater(5, 7))), Lesser(6, 3)))
 
-				" 2 * 3 + 4" should beParsedTo (Add(Mul(N(2), N(3)), N(4)))
-				" (2 * 3) + 4" should beParsedTo (Add(Mul(N(2), N(3)), N(4)))
-				" 2 * (3 + 4)" should beParsedTo (Mul(N(2), Add(N(3), N(4))))
-				" 4 + 2 * 3" should beParsedTo (Add(N(4), Mul(N(2), N(3))))
-				" 4 + (2 * 3)" should beParsedTo (Add(N(4), Mul(N(2), N(3))))
-				" (4 + 2) * 3" should beParsedTo (Mul(Add(N(4), N(2)), N(3)))
+				" 2 * 3 + 4" should beParsedTo (Add(Mul(2, 3), 4))
+				" (2 * 3) + 4" should beParsedTo (Add(Mul(2, 3), 4))
+				" 2 * (3 + 4)" should beParsedTo (Mul(2, Add(3, 4)))
+				" 4 + 2 * 3" should beParsedTo (Add(4, Mul(2, 3)))
+				" 4 + (2 * 3)" should beParsedTo (Add(4, Mul(2, 3)))
+				" (4 + 2) * 3" should beParsedTo (Mul(Add(4, 2), 3))
 
-				" 10 + x == y * 5 + 2 * 3" should beParsedTo (Eq(Add(N(10), R('x)), Add(Mul(R('y), N(5)), Mul(N(2), N(3)))))
-				" 10 + -x == y * (5 + -2) * 3" should beParsedTo (Eq(Add(N(10), Mul(N(-1), R('x))), Mul(Mul(R('y), Add(N(5), N(-2))), N(3))))
-				" 1 * 2 + 3 / 4 != 5 - 6 && 7 - 8 >= -9 * (2 + 3)" should beParsedTo (And(Not(Eq(Add(Mul(N(1), N(2)), Div(N(3), N(4))), Sub(5, 6))), GreaterOrEq(Sub(N(7), N(8)), Mul(N(-9), Add(N(2), N(3))))))
+				" 10 + x == y * 5 + 2 * 3" should beParsedTo (Eq(Add(10, 'x), Add(Mul('y, 5), Mul(2, 3))))
+				" 10 + -x == y * (5 + -2) * 3" should beParsedTo (Eq(Add(10, Mul(-1, 'x)), Mul(Mul('y, Add(5, -2)), 3)))
+				" 1 * 2 + 3 / 4 != 5 - 6 && 7 - 8 >= -9 * (2 + 3)" should beParsedTo (And(Not(Eq(Add(Mul(1, 2), Div(3, 4)), Sub(5, 6))), GreaterOrEq(Sub(7, 8), Mul(-9, Add(2, 3)))))
 			}
 
 			"if" in {
 				implicit val parser = ifExp
 
-				""" if(x < 3) { x + 4; } """ should beParsedTo (If(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Nil, Nil))
-				""" if(x < 3) { x + 4; } else { x - 1; } """ should beParsedTo (If(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Nil, Sub(R('x), N(1)) :: Nil))
+				""" if(x < 3) { x + 4; } """ should beParsedTo (If(Lesser('x, 3), Add('x, 4) :: Nil, Nil))
+				""" if(x < 3) { x + 4; } else { x - 1; } """ should beParsedTo (If(Lesser('x, 3), Add('x, 4) :: Nil, Sub('x, 1) :: Nil))
 			}
 
 			"while" in {
 				implicit val parser = whileExp
 
-				""" while(x < 3) { x + 4; x - 1; } """ should beParsedTo (While(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Sub(R('x), N(1)) :: Nil))
+				""" while(x < 3) { x + 4; x - 1; } """ should beParsedTo (While(Lesser('x, 3), Add('x, 4) :: Sub('x, 1) :: Nil))
 			}
 
 			"assign" in {
 				implicit val parser = assign
 
-				""" x = y; """ should beParsedTo (Assign('x, R('y)))
-				""" x = x - 1; """ should beParsedTo (Assign('x, Sub(R('x), N(1))))
+				""" x = y; """ should beParsedTo (Assign('x, 'y))
+				""" x = x - 1; """ should beParsedTo (Assign('x, Sub('x, 1)))
 			}
 
 			"message chain" in {
 				implicit val parser = messageChain
 
-				""" x """ should beParsedTo (R('x))
+				""" x """ should beParsedTo ('x)
 
-				""" x.a """ should beParsedTo(Get(R('x), 'a))
-				""" x.a.b """ should beParsedTo(Get(Get(R('x), 'a), 'b))
+				""" x.a """ should beParsedTo(Get('x, 'a))
+				""" x.a.b """ should beParsedTo(Get(Get('x, 'a), 'b))
 
-				""" x.m() """ should beParsedTo (Send(R('x), 'm, Nil))
-				""" x.m(1) """ should beParsedTo (Send(R('x), 'm, N(1) :: Nil))
-				""" x.m(1,2) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Nil))
-				""" x.m(1,2,y.n(z)) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Send(R('y), 'n, R('z) :: Nil) :: Nil))
-				""" x.m(1).n(y) """ should beParsedTo (Send(Send(R('x), 'm, N(1) :: Nil), 'n, R('y) :: Nil))
+				""" x.m() """ should beParsedTo (Send('x, 'm, Nil))
+				""" x.m(1) """ should beParsedTo (Send('x, 'm, List(1)))
+				""" x.m(1,2) """ should beParsedTo (Send('x, 'm, List(1, 2)))
+				""" x.m(1,2,y.n(z)) """ should beParsedTo (Send('x, 'm, List(1, 2, Send('y, 'n, 'z :: Nil))))
+				""" x.m(1).n(y) """ should beParsedTo (Send(Send('x, 'm, 1 :: Nil), 'n, 'y :: Nil))
 
-				""" x.m(1).a.n(2 + 3) """ should beParsedTo (Send(Get(Send(R('x), 'm, N(1) :: Nil), 'a), 'n, Add(N(2), N(3)) :: Nil))
+				""" x.m(1).a.n(2 + 3) """ should beParsedTo (Send(Get(Send('x, 'm, List(1)), 'a), 'n, Add(2, 3) :: Nil))
 			}
 
 			"attribute set" in {
 				implicit val parser = attributeSet
 
-				""" x.a = 1; """ should beParsedTo(Set(R('x), 'a, N(1)))
-				""" x.m().a = 1 + 2; """ should beParsedTo (Set(Send(R('x), 'm, Nil), 'a, Add(N(1), N(2))))
-				""" x.m().a = y.n(1) + 2; """ should beParsedTo (Set(Send(R('x), 'm, Nil), 'a, Add(Send(R('y), 'n, 1 :: Nil), N(2))))
+				""" x.a = 1; """ should beParsedTo(Set('x, 'a, 1))
+				""" x.m().a = 1 + 2; """ should beParsedTo (Set(Send('x, 'm, Nil), 'a, Add(1, 2)))
+				""" x.m().a = y.n(1) + 2; """ should beParsedTo (Set(Send('x, 'm, Nil), 'a, Add(Send('y, 'n, 1 :: Nil), 2)))
 			}
 		}
 	}
