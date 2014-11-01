@@ -45,9 +45,20 @@ trait Parse extends RegexParsers {
 	protected lazy val mulExp = opChain(mulOp, primaryExp)
 	protected lazy val primaryExp: Parser[Sentence] = "(" ~> expression <~ ")" | number | reference | ("-" ~> primaryExp ^^ { Mul(N(-1), _) })
 
-	protected lazy val asign = (identifier <~ assignOp).? ~ sentence <~ lineSep ^^ { case maybeId ~ value => maybeId.fold(value)(Assign(_, value)) }
+	protected lazy val arrayPut = array ~ (("[" ~> sentence <~ "]") ~ (assignOp ~> sentence).?).? ^^ {
+		case a ~ kv => kv.fold(a: Sentence){ case k ~ v => v.fold(At(a, k): Sentence){ Put(a, k, _) } }
+	}
 
-	protected lazy val sentence: Parser[Sentence] = expression | array
+	protected lazy val ifExp: Parser[Sentence] = ("if" ~> "(" ~> sentence <~ ")") ~ codeBlock ~ ("else" ~> codeBlock).? ^^ {
+		case c ~ t ~ f => If(c, t, f.getOrElse(Nil))
+	}
+	protected lazy val whileExp: Parser[Sentence] = ("while" ~> "(" ~> sentence <~ ")") ~ codeBlock ^^ { case c ~ b => While(c, b) }
+
+	protected lazy val assign = (identifier <~ assignOp).? ~ sentence <~ lineSep ^^ { case maybeId ~ value => maybeId.fold(value)(Assign(_, value)) }
+
+	protected lazy val line = ifExp | whileExp | assign | sentence <~ lineSep
+	protected lazy val codeBlock = "{" ~> line.* <~ "}"
+	protected lazy val sentence: Parser[Sentence] = expression | arrayPut
 
 	protected lazy val params = "(" ~> repsep(sentence, sentenceSep) <~ ")"
 	protected lazy val messageSend = (sentence <~ ".") ~ identifier ~ params ^^ { case obj ~ msg ~ params => Send(obj, msg, params) }

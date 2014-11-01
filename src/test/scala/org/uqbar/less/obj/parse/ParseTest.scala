@@ -16,6 +16,7 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 			"references" in {
 				implicit val parser = reference
+
 				""" _ """ should beParsedTo (R('_))
 				""" x """ should beParsedTo (R('x))
 				""" foo """ should beParsedTo (R('foo))
@@ -24,13 +25,15 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 			"numbers" in {
 				implicit val parser = number
+
 				""" 0 """ should beParsedTo (N(0))
 				""" 192 """ should beParsedTo (N(192))
 				""" -10 """ should beParsedTo (N(-10))
 			}
 
 			"arrays" in {
-				implicit val parser = array
+				implicit val parser = arrayPut
+
 				""" #[] """ should beParsedTo (A(Seq()))
 				""" #[1] """ should beParsedTo (A(Seq(N(1))))
 				""" #[1,2,3] """ should beParsedTo (A(Seq(N(1), N(2), N(3))))
@@ -38,10 +41,16 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				""" #[#[1,2],#[3,4]] """ should beParsedTo (A(Seq(A(Seq(N(1), N(2))), A(Seq(N(3), N(4))))))
 				""" #[#[]] """ should beParsedTo (A(Seq(A(Seq()))))
 				""" #[#[],#[]] """ should beParsedTo (A(Seq(A(Seq()), A(Seq()))))
+
+				""" #[1,2,3][4] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), N(4)))
+				""" #[1,2,3][4 + 5] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), Add(N(4), N(5))))
+
+				""" #[1,2,3][4] = 5 + 6 """ should beParsedTo (Put(A(Seq(N(1), N(2), N(3))), N(4), Add(N(5), N(6))))
 			}
 
 			"aritmethic expressions" in {
 				implicit val parser = expression
+
 				" 2 && 3 " should beParsedTo (And(N(2), N(3)))
 				" 2 && 3 && 4" should beParsedTo (And(And(N(2), N(3)), N(4)))
 				" (2 && 3) && 4" should beParsedTo (And(And(N(2), N(3)), N(4)))
@@ -106,6 +115,26 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				" 10 + x == y * 5 + 2 * 3" should beParsedTo (Eq(Add(N(10), R('x)), Add(Mul(R('y), N(5)), Mul(N(2), N(3)))))
 				" 10 + -x == y * (5 + -2) * 3" should beParsedTo (Eq(Add(N(10), Mul(N(-1), R('x))), Mul(Mul(R('y), Add(N(5), N(-2))), N(3))))
 				" 1 * 2 + 3 / 4 != 5 - 6 && 7 - 8 >= -9 * (2 + 3)" should beParsedTo (And(Not(Eq(Add(Mul(N(1), N(2)), Div(N(3), N(4))), Sub(5, 6))), GreaterOrEq(Sub(N(7), N(8)), Mul(N(-9), Add(N(2), N(3))))))
+			}
+
+			"if" in {
+				implicit val parser = ifExp
+
+				""" if(x < 3) { x + 4; } """ should beParsedTo (If(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Nil, Nil))
+				""" if(x < 3) { x + 4; } else { x - 1; } """ should beParsedTo (If(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Nil, Sub(R('x), N(1)) :: Nil))
+			}
+
+			"while" in {
+				implicit val parser = whileExp
+
+				""" while(x < 3) { x + 4; x - 1; } """ should beParsedTo (While(Lesser(R('x), N(3)), Add(R('x), N(4)) :: Sub(R('x), N(1)) :: Nil))
+			}
+
+			"assign" in {
+				implicit val parser = assign
+
+				""" x = y; """ should beParsedTo (Assign('x, R('y)))
+				""" x = x - 1; """ should beParsedTo (Assign('x, Sub(R('x), N(1))))
 			}
 		}
 	}
