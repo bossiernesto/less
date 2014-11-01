@@ -43,10 +43,14 @@ trait Parse extends RegexParsers {
 	protected lazy val eqExp = "!".? ~ opChain(eqOp, addExp) ^^ { case not ~ exp => not.fold(exp){ _ => Not(exp) } }
 	protected lazy val addExp = opChain(addOp, mulExp)
 	protected lazy val mulExp = opChain(mulOp, primaryExp)
-	protected lazy val primaryExp: Parser[Sentence] = "(" ~> expression <~ ")" | number | reference | ("-" ~> primaryExp ^^ { Mul(N(-1), _) })
+	protected lazy val primaryExp: Parser[Sentence] = "(" ~> expression <~ ")" | number | messageChain | ("-" ~> primaryExp ^^ { Mul(N(-1), _) })
 
-	protected lazy val arrayPut = array ~ (("[" ~> sentence <~ "]") ~ (assignOp ~> sentence).?).? ^^ {
-		case a ~ kv => kv.fold(a: Sentence){ case k ~ v => v.fold(At(a, k): Sentence){ Put(a, k, _) } }
+	protected lazy val arrayAt: Parser[Sentence] = ("(" ~> arrayAt <~ ")" | array | messageChain) ~ ("[" ~> sentence <~ "]").* ^^ {
+		case a ~ ks => (a /: ks)(At(_, _))
+	}
+
+	protected lazy val arrayPut = sentence ~ ("[" ~> sentence <~ "]") ~ (assignOp ~> sentence) <~ lineSep ^^ {
+		case a ~ k ~ v => Put(a, k, v)
 	}
 
 	protected lazy val ifExp: Parser[Sentence] = ("if" ~> "(" ~> sentence <~ ")") ~ codeBlock ~ ("else" ~> codeBlock).? ^^ {
@@ -56,11 +60,13 @@ trait Parse extends RegexParsers {
 
 	protected lazy val assign = (identifier <~ assignOp).? ~ sentence <~ lineSep ^^ { case maybeId ~ value => maybeId.fold(value)(Assign(_, value)) }
 
-	protected lazy val line = ifExp | whileExp | assign | sentence <~ lineSep
 	protected lazy val codeBlock = "{" ~> line.* <~ "}"
-	protected lazy val sentence: Parser[Sentence] = expression | arrayPut
+	protected lazy val line = ifExp | whileExp | arrayPut | assign | sentence <~ lineSep
+	protected lazy val sentence: Parser[Sentence] = array | expression
 
-	protected lazy val params = "(" ~> repsep(sentence, sentenceSep) <~ ")"
-	protected lazy val messageSend = (sentence <~ ".") ~ identifier ~ params ^^ { case obj ~ msg ~ params => Send(obj, msg, params) }
+	protected lazy val args = "(" ~> repsep(sentence, sentenceSep) <~ ")"
+	protected lazy val messageChain = reference ~ ("." ~> identifier ~ args).* ^^ {
+		case obj ~ msgs => ((obj: Sentence) /: msgs) { case (prev, msg ~ args) => Send(prev, msg, args) }
+	}
 
 }

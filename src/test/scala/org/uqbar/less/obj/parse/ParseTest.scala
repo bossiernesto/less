@@ -31,21 +31,32 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				""" -10 """ should beParsedTo (N(-10))
 			}
 
-			"arrays" in {
-				implicit val parser = arrayPut
+			"arrays" - {
 
-				""" #[] """ should beParsedTo (A(Seq()))
-				""" #[1] """ should beParsedTo (A(Seq(N(1))))
-				""" #[1,2,3] """ should beParsedTo (A(Seq(N(1), N(2), N(3))))
-				""" #[1,1+1,3] """ should beParsedTo (A(Seq(N(1), Add(N(1), N(1)), N(3))))
-				""" #[#[1,2],#[3,4]] """ should beParsedTo (A(Seq(A(Seq(N(1), N(2))), A(Seq(N(3), N(4))))))
-				""" #[#[]] """ should beParsedTo (A(Seq(A(Seq()))))
-				""" #[#[],#[]] """ should beParsedTo (A(Seq(A(Seq()), A(Seq()))))
+				"at" in {
+					implicit val parser = arrayAt
 
-				""" #[1,2,3][4] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), N(4)))
-				""" #[1,2,3][4 + 5] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), Add(N(4), N(5))))
+					""" #[] """ should beParsedTo (A(Seq()))
+					""" #[1] """ should beParsedTo (A(Seq(N(1))))
+					""" #[1,2,3] """ should beParsedTo (A(Seq(N(1), N(2), N(3))))
+					""" #[1,1+1,3] """ should beParsedTo (A(Seq(N(1), Add(N(1), N(1)), N(3))))
+					""" #[#[1,2],#[3,4]] """ should beParsedTo (A(Seq(A(Seq(N(1), N(2))), A(Seq(N(3), N(4))))))
+					""" #[#[]] """ should beParsedTo (A(Seq(A(Seq()))))
+					""" #[#[],#[]] """ should beParsedTo (A(Seq(A(Seq()), A(Seq()))))
 
-				""" #[1,2,3][4] = 5 + 6 """ should beParsedTo (Put(A(Seq(N(1), N(2), N(3))), N(4), Add(N(5), N(6))))
+					""" #[1,2,3][4] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), N(4)))
+					""" #[1,2,3][4 + 5] """ should beParsedTo (At(A(Seq(N(1), N(2), N(3))), Add(N(4), N(5))))
+
+					""" #[#[1,2]][0][1] """ should beParsedTo (At(At(A(Seq(A(Seq(N(1), N(2))))), N(0)), N(1)))
+
+				}
+
+				"put" in {
+					implicit val parser = arrayPut
+
+					""" #[1,2,3][4] = 5 + 6; """ should beParsedTo (Put(A(Seq(N(1), N(2), N(3))), N(4), Add(N(5), N(6))))
+				}
+
 			}
 
 			"aritmethic expressions" in {
@@ -135,6 +146,23 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 				""" x = y; """ should beParsedTo (Assign('x, R('y)))
 				""" x = x - 1; """ should beParsedTo (Assign('x, Sub(R('x), N(1))))
+			}
+
+			"message chain" in {
+				implicit val parser = messageChain
+
+				""" x """ should beParsedTo (R('x))
+				""" x.m() """ should beParsedTo (Send(R('x), 'm, Nil))
+				""" x.m(1) """ should beParsedTo (Send(R('x), 'm, N(1) :: Nil))
+				""" x.m(1,2) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Nil))
+				""" x.m(1,2,y.n(z)) """ should beParsedTo (Send(R('x), 'm, N(1) :: N(2) :: Send(R('y), 'n, R('z) :: Nil) :: Nil))
+				""" x.m(1).n(y) """ should beParsedTo (Send(Send(R('x), 'm, N(1) :: Nil), 'n, R('y) :: Nil))
+			}
+
+			"array length" in {}
+			"attribute" - {
+				"get" in {}
+				"set" in {}
 			}
 		}
 	}
