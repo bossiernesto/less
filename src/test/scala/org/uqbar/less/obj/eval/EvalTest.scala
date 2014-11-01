@@ -124,11 +124,86 @@ class EvalTest extends FreeSpec with Matchers with BeforeAndAfter {
 			}
 		}
 
+		"SUB" - {
+			"should pop two numbers and push it's subtraction to the stack" in {
+				val result = Eval(stack = 3 :: 4 :: Nil)(SUB)
+
+				result.stack should be (-1 :: Nil)
+			}
+		}
+
 		"MUL" - {
 			"should pop two numbers and push it's multiplication to the stack" in {
 				val result = Eval(stack = 3 :: 4 :: Nil)(MUL)
 
 				result.stack should be (12 :: Nil)
+			}
+		}
+
+		"DIV" - {
+			"should pop two numbers and push it's division to the stack" in {
+				val result = Eval(stack = 12 :: 3 :: Nil)(DIV)
+
+				result.stack should be (4 :: Nil)
+			}
+		}
+
+		"AND" - {
+			"should pop two numbers and push to the stack a 0 if none of them is different from 0" in {
+				val result = Eval(stack = 0 :: 0 :: Nil)(AND)
+
+				result.stack should be (0 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 0 if the first is different from 0" in {
+				val result = Eval(stack = 1 :: 0 :: Nil)(AND)
+
+				result.stack should be (0 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 0 if the second is different from 0" in {
+				val result = Eval(stack = 0 :: 1 :: Nil)(AND)
+
+				result.stack should be (0 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 1 if booth are different from 0" in {
+				val result = Eval(stack = 1 :: 1 :: Nil)(AND)
+
+				result.stack should be (1 :: Nil)
+			}
+		}
+
+		"OR" - {
+			"should pop two numbers and push to the stack a 0 if none of them is different from 0" in {
+				val result = Eval(stack = 0 :: 0 :: Nil)(OR)
+
+				result.stack should be (0 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 1 if the first is different from 0" in {
+				val result = Eval(stack = 1 :: 0 :: Nil)(OR)
+
+				result.stack should be (1 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 1 if the second is different from 0" in {
+				val result = Eval(stack = 0 :: 1 :: Nil)(OR)
+
+				result.stack should be (1 :: Nil)
+			}
+			"should pop two numbers and push to the stack a 1 if booth are different from 0" in {
+				val result = Eval(stack = 1 :: 1 :: Nil)(OR)
+
+				result.stack should be (1 :: Nil)
+			}
+		}
+
+		"NOT" - {
+			"should pop one number and push to the stack a 0 if it is different from 0" in {
+				val result = Eval(stack = 1 :: Nil)(NOT)
+
+				result.stack should be (0 :: Nil)
+			}
+			"should pop one number and push to the stack a 1 if it is 0" in {
+				val result = Eval(stack = 0 :: Nil)(NOT)
+
+				result.stack should be (1 :: Nil)
 			}
 		}
 
@@ -149,6 +224,63 @@ class EvalTest extends FreeSpec with Matchers with BeforeAndAfter {
 				val result = Eval(stack = 2 :: 2 :: Nil)(GRTHN)
 
 				result.stack should be (0 :: Nil)
+			}
+		}
+		"GREQ" - {
+			"should pop two numbers and push a 1 if the first is greater than the second" in {
+				val result = Eval(stack = 5 :: 2 :: Nil)(GREQ)
+
+				result.stack should be (1 :: Nil)
+			}
+
+			"should pop two numbers and push a 0 if the first is lesser than the second" in {
+				val result = Eval(stack = 2 :: 5 :: Nil)(GREQ)
+
+				result.stack should be (0 :: Nil)
+			}
+
+			"should pop two numbers and push a 0 if the first is equal than the second" in {
+				val result = Eval(stack = 2 :: 2 :: Nil)(GREQ)
+
+				result.stack should be (1 :: Nil)
+			}
+		}
+		"LSTHN" - {
+			"should pop two numbers and push a 0 if the first is greater than the second" in {
+				val result = Eval(stack = 5 :: 2 :: Nil)(LSTHN)
+
+				result.stack should be (0 :: Nil)
+			}
+
+			"should pop two numbers and push a 1 if the first is lesser than the second" in {
+				val result = Eval(stack = 2 :: 5 :: Nil)(LSTHN)
+
+				result.stack should be (1 :: Nil)
+			}
+
+			"should pop two numbers and push a 0 if the first is equal than the second" in {
+				val result = Eval(stack = 2 :: 2 :: Nil)(LSTHN)
+
+				result.stack should be (0 :: Nil)
+			}
+		}
+		"LSEQ" - {
+			"should pop two numbers and push a 0 if the first is greater than the second" in {
+				val result = Eval(stack = 5 :: 2 :: Nil)(LSEQ)
+
+				result.stack should be (0 :: Nil)
+			}
+
+			"should pop two numbers and push a 1 if the first is lesser than the second" in {
+				val result = Eval(stack = 2 :: 5 :: Nil)(LSEQ)
+
+				result.stack should be (1 :: Nil)
+			}
+
+			"should pop two numbers and push a 1 if the first is equal than the second" in {
+				val result = Eval(stack = 2 :: 2 :: Nil)(LSEQ)
+
+				result.stack should be (1 :: Nil)
 			}
 		}
 

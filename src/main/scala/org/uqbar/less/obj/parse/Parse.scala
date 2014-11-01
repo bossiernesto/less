@@ -12,29 +12,28 @@ trait Parse extends RegexParsers {
 	protected lazy val lineSep = ";"
 
 	protected lazy val number = "-?[0-9]+".r ^^ { n => N(n.toInt) }
-	protected lazy val array = "[" ~> repsep(sentence, sentenceSep) <~ "]" ^^ { A(_) }
+	protected lazy val array = "#[" ~> repsep(sentence, sentenceSep) <~ "]" ^^ { A(_) }
 	protected lazy val reference = identifier ^^ { R(_) }
 
-	protected lazy val boolOp: Parser[(Sentence, Sentence) => Sentence] = ("&" | "|") ^^ {
-		case "&" => And
-		case "|" => Or
-	}
-	protected lazy val eqOp: Parser[(Sentence, Sentence) => Sentence] = ("==" | "!=" | "<=" | ">=" | ">" | "<") ^^ {
-		case "==" => Eq
-		case "!=" => (l, r) => Not(Eq(l, r))
-		case ">" => Greater
-		case ">=" => GreaterOrEq
-		case "<" => Lesser
-		case "<=" => LesserOrEq
-	}
-	protected lazy val addOp: Parser[(Sentence, Sentence) => Sentence] = ("+" | "-") ^^ {
-		case "+" => Add
-		case "-" => Sub
-	}
-	protected lazy val mulOp: Parser[(Sentence, Sentence) => Sentence] = ("*" | "/") ^^ {
-		case "*" => Mul
-		case "/" => Div
-	}
+	protected lazy val boolOp: Parser[(Sentence, Sentence) => Sentence] =
+		"&&" ^^ { _ => And } |
+			"||" ^^ { _ => Or }
+
+	protected lazy val eqOp: Parser[(Sentence, Sentence) => Sentence] =
+		"==" ^^ { _ => Eq } |
+			"!=" ^^ { _ => (l: Sentence, r: Sentence) => Not(Eq(l, r)) } |
+			">=" ^^ { _ => GreaterOrEq } |
+			"<=" ^^ { _ => LesserOrEq } |
+			">" ^^ { _ => Greater } |
+			"<" ^^ { _ => Lesser }
+
+	protected lazy val addOp: Parser[(Sentence, Sentence) => Sentence] =
+		"+" ^^ { _ => Add } |
+			"-" ^^ { _ => Sub }
+
+	protected lazy val mulOp: Parser[(Sentence, Sentence) => Sentence] =
+		"*" ^^ { _ => Mul } |
+			"/" ^^ { _ => Div }
 
 	protected def opChain(op: Parser[(Sentence, Sentence) => Sentence], subLevel: Parser[Sentence]) =
 		subLevel ~ (op ~ subLevel).* ^^ { case l ~ r => (l /: r){ case (l, o ~ r) => o(l, r) } }

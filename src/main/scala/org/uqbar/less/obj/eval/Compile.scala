@@ -22,8 +22,16 @@ object Compile {
 		case At(targetA, indexN) => compile(compile(previous, indexN), targetA) :+ AT
 		case Put(targetA, indexN, value) => compile(compile(compile(previous, value), targetA), indexN) :+ PUT
 		case Add(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ ADD
+		case Sub(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ SUB
 		case Mul(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ MUL
+		case Div(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ DIV
+		case And(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ AND
+		case Or(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ OR
 		case Greater(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ GRTHN
+		case Lesser(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ LSTHN
+		case GreaterOrEq(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ GREQ
+		case LesserOrEq(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ LSEQ
+		case Not(condition) => compile(previous, condition) :+ NOT
 		case If(conditionN, bodyTrue, bodyFalse) =>
 			val bodyTrueBytecode = compile(Seq(), bodyTrue)
 			compile((compile(previous, conditionN) :+ IFNZ(bodyTrueBytecode.size)) ++ bodyTrueBytecode, bodyFalse)

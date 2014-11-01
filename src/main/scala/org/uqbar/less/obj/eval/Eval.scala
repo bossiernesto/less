@@ -82,7 +82,7 @@ object Eval {
 				)
 
 			case PUT =>
-				val target :: value :: (index: Int) :: rest = stack
+				val target :: value :: index :: rest = stack
 				state.copy(
 					memory = memory.updated(target, memory[O](target).updated(Symbol(index.toString), value)),
 					stack = rest,
@@ -90,23 +90,77 @@ object Eval {
 				)
 
 			case ADD =>
-				val (left: Int) :: (right: Int) :: rest = stack
+				val left :: right :: rest = stack
 				state.copy(
 					stack = left + right :: rest,
 					pc = pc + 1
 				)
 
+			case SUB =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = left - right :: rest,
+					pc = pc + 1
+				)
+
 			case MUL =>
-				val (left: Int) :: (right: Int) :: rest = stack
+				val left :: right :: rest = stack
 				state.copy(
 					stack = left * right :: rest,
 					pc = pc + 1
 				)
+			case DIV =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = left / right :: rest,
+					pc = pc + 1
+				)
+
+			case NOT =>
+				val condition :: rest = stack
+				state.copy(
+					stack = (if (condition == 0) 1 else 0) :: rest,
+					pc = pc + 1
+				)
+
+			case AND =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = (if (left != 0 && right != 0) 1 else 0) :: rest,
+					pc = pc + 1
+				)
+
+			case OR =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = (if (left != 0 || right != 0) 1 else 0) :: rest,
+					pc = pc + 1
+				)
 
 			case GRTHN =>
-				val (left: Int) :: (right: Int) :: rest = stack
+				val left :: right :: rest = stack
 				state.copy(
 					stack = (if (left > right) 1 else 0) :: rest,
+					pc = pc + 1
+				)
+
+			case LSTHN =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = (if (left < right) 1 else 0) :: rest,
+					pc = pc + 1
+				)
+			case GREQ =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = (if (left >= right) 1 else 0) :: rest,
+					pc = pc + 1
+				)
+
+			case LSEQ =>
+				val left :: right :: rest = stack
+				state.copy(
+					stack = (if (left <= right) 1 else 0) :: rest,
 					pc = pc + 1
 				)
 
