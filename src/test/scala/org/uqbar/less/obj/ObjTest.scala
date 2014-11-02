@@ -23,7 +23,7 @@ class ObjTest extends FreeSpec with Matchers with BeforeAndAfter {
 				Assign('r, 0),
 				Assign('i, 0),
 				Assign('a, %(3, 7, Add(6, 2))),
-				While(Greater(Length('a), 'i), Seq(
+				While(Greater(Get('a, 'length), 'i), Seq(
 					Assign('r, Add('r, At('a, 'i))),
 					Assign('i, Add('i, 1))
 				))

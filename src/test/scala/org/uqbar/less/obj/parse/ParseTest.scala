@@ -17,24 +17,25 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 			"references" in {
 				implicit val parser = reference
 
-				""" _ """ should beParsedTo ('_)
-				""" x """ should beParsedTo ('x)
-				""" foo """ should beParsedTo ('foo)
-				""" foo_bar """ should beParsedTo ('foo_bar)
+				""" _ """ should beParsedTo ('_: Sentence)
+				""" x """ should beParsedTo ('x: Sentence)
+				""" x1 """ should beParsedTo ('x1: Sentence)
+				""" foo """ should beParsedTo ('foo: Sentence)
+				""" foo_bar """ should beParsedTo ('foo_bar: Sentence)
 			}
 
 			"numbers" in {
 				implicit val parser = number
 
-				""" 0 """ should beParsedTo (0)
-				""" 192 """ should beParsedTo (192)
-				""" -10 """ should beParsedTo (-10)
+				""" 0 """ should beParsedTo (0: Sentence)
+				""" 192 """ should beParsedTo (192: Sentence)
+				""" -10 """ should beParsedTo (-10: Sentence)
 			}
 
 			"arrays" - {
 
 				"at" in {
-					implicit val parser = arrayAt
+					implicit val parser = sentence
 
 					""" #[] """ should beParsedTo (%())
 					""" #[1] """ should beParsedTo (%(1))
@@ -48,21 +49,18 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 					""" #[1,2,3][4 + 5] """ should beParsedTo (At(%(1, 2, 3), Add(4, 5)))
 					""" #[#[1,2]][0][1] """ should beParsedTo (At(At(%(%(1, 2)), 0), 1))
 
-					""" #[].length """ should beParsedTo (Length(%()))
-					""" #[1,1+1,3].length """ should beParsedTo (Length(%(1, Add(1, 1), 3)))
-					""" #[#[1,2]][0][1].length """ should beParsedTo (Length(At(At(%(%(1, 2)), 0), 1)))
 				}
 
 				"put" in {
-					implicit val parser = arrayPut
+					implicit val parser = putOrSet
 
 					""" #[1,2,3][4] = 5 + 6; """ should beParsedTo (Put(%(1, 2, 3), 4, Add(5, 6)))
 				}
 
 			}
 
-			"aritmethic expressions" in {
-				implicit val parser = expression
+			"expressions" in {
+				implicit val parser = sentence
 
 				" 2 && 3 " should beParsedTo (And(2, 3))
 				" 2 && 3 && 4" should beParsedTo (And(And(2, 3), 4))
@@ -135,6 +133,8 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 				""" if(x < 3) { x + 4; } """ should beParsedTo (If(Lesser('x, 3), Add('x, 4) :: Nil, Nil))
 				""" if(x < 3) { x + 4; } else { x - 1; } """ should beParsedTo (If(Lesser('x, 3), Add('x, 4) :: Nil, Sub('x, 1) :: Nil))
+				""" if(1) { r = this.a; } """ should beParsedTo (If(1, Seq(Assign('r, Get('this, 'a))), Nil))
+
 			}
 
 			"while" in {
@@ -148,12 +148,13 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 				""" x = y; """ should beParsedTo (Assign('x, 'y))
 				""" x = x - 1; """ should beParsedTo (Assign('x, Sub('x, 1)))
+				""" r = this.a; """ should beParsedTo (Assign('r, Get('this, 'a)))
 			}
 
 			"message chain" in {
-				implicit val parser = messageChain
+				implicit val parser = accessChain
 
-				""" x """ should beParsedTo ('x)
+				""" x """ should beParsedTo ('x: Sentence)
 
 				""" x.a """ should beParsedTo(Get('x, 'a))
 				""" x.a.b """ should beParsedTo(Get(Get('x, 'a), 'b))
@@ -165,14 +166,103 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 				""" x.m(1).n(y) """ should beParsedTo (Send(Send('x, 'm, 1 :: Nil), 'n, 'y :: Nil))
 
 				""" x.m(1).a.n(2 + 3) """ should beParsedTo (Send(Get(Send('x, 'm, List(1)), 'a), 'n, Add(2, 3) :: Nil))
+
+				""" #[].length """ should beParsedTo (Get(%(), 'length))
+				""" #[1,1+1,3].length """ should beParsedTo (Get(%(1, Add(1, 1), 3), 'length))
+				""" #[#[1,2]][0][1].length """ should beParsedTo (Get(At(At(%(%(1, 2)), 0), 1), 'length))
 			}
 
 			"attribute set" in {
-				implicit val parser = attributeSet
+				implicit val parser = putOrSet
 
-				""" x.a = 1; """ should beParsedTo(Set('x, 'a, 1))
+				""" x.a = 1; """ should beParsedTo (Set('x, 'a, 1))
 				""" x.m().a = 1 + 2; """ should beParsedTo (Set(Send('x, 'm, Nil), 'a, Add(1, 2)))
 				""" x.m().a = y.n(1) + 2; """ should beParsedTo (Set(Send('x, 'm, Nil), 'a, Add(Send('y, 'n, 1 :: Nil), 2)))
+			}
+
+			"method" in {
+				implicit val parser = methodDef
+
+				""" def m() {} """ should beParsedTo (M('m, Nil, Nil))
+				""" def m() { 5; } """ should beParsedTo (M('m, Nil, List(5)))
+				""" def m(x) { 5; } """ should beParsedTo (M('m, List('x), List(5)))
+				""" def m(x,y) { 5; } """ should beParsedTo (M('m, List('x, 'y), List(5)))
+				""" def m() { if(this.a > 4) { r = this.a; } else {r = this.a + 4;} r; } """ should beParsedTo (
+					M('m, Seq(), Seq(
+						If(Greater(Get('this, 'a), 4), Seq(Assign('r, Get('this, 'a))), Seq(Assign('r, Add(Get('this, 'a), 4)))),
+						'r
+					)))
+			}
+
+			"object" in {
+				implicit val parser = objectDef
+
+				""" object X {} """ should beParsedTo (O('X, Nil))
+
+				""" object X { def m(){ 5; } } """ should beParsedTo (O('X, List(M('m, Nil, List(5)))))
+				"""
+					object X {
+						def m(){ 5; }
+						def n(){ 6; }
+				} """ should beParsedTo (O('X, List(M('m, Nil, List(5)), M('n, Nil, List(6)))))
+
+				""" object X { this.a = 5; } """ should beParsedTo (O('X, List(Set('this, 'a, 5))))
+			}
+
+			"program" in {
+				implicit val parser = program
+
+				"""""" should beParsedTo (Nil)
+
+				"""
+					object X { }
+				""" should beParsedTo (List(O('X, Nil)))
+
+				"""
+					object O {
+						this.a = 5;
+						def m(){ 5; }
+					}
+				""" should beParsedTo (List(
+					O('O, Seq(
+						Set('this, 'a, 5),
+						M ('m, Nil, List(5))
+					))
+				))
+
+				"""
+					object O {
+						this.a = 5;
+						
+						def m1() {
+							if(this.a > 4) { r = this.a; } else {r = this.a + 4;}
+							r;
+						}
+						def m2(i) { this.a + i; }
+						def m3(i,j) { this.m2(#[1,2,3,4][i]) - j; }
+					}
+					O.a = 3;
+					O.m1() + O.m3(2 + 1, 3);
+				""" should beParsedTo (
+					List(
+						O('O, Seq(
+							Set('this, 'a, 5),
+							M('m1, Seq(), Seq(
+								If(Greater(Get('this, 'a), 4), Seq(Assign('r, Get('this, 'a))), Seq(Assign('r, Add(Get('this, 'a), 4)))),
+								'r
+							)),
+							M('m2, Seq('i), Seq(
+								Add(Get('this, 'a), 'i)
+							)),
+							M('m3, Seq('i, 'j), Seq(
+								Sub(Send('this, 'm2, Seq(At(%(1, 2, 3, 4), 'i))), 'j)
+							))
+						)),
+						Set('O, 'a, 3),
+						Add(Send('O, 'm1, Nil), Send('O, 'm3, Seq(Add(2, 1), 3)))
+					)
+				)
+
 			}
 		}
 	}
@@ -181,7 +271,7 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 	// MATCHERS
 	//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
-	case class beParsedTo[T](expected: Sentence)(implicit parser: Parser[T]) extends Matcher[String] {
+	case class beParsedTo[T](expected: Any)(implicit parser: Parser[T]) extends Matcher[String] {
 		def apply(left: String) = {
 			val result = parse(parser, left)
 			MatchResult(

@@ -8,8 +8,10 @@ sealed trait Sentence
 
 sealed trait Entity extends Sentence
 case class R(id: ID) extends Entity
-case class N(value: Int) extends Entity
+case class O(id: ID, body: Seq[Sentence]) extends Entity
+case class M(id: ID, args: Seq[ID], body: Seq[Sentence]) extends Entity
 case class A(values: Seq[Sentence]) extends Entity
+case class N(value: Int) extends Entity
 
 case class Assign(target: ID, value: Sentence) extends Sentence
 case class Eq(left: Sentence, right: Sentence) extends Sentence
@@ -18,7 +20,6 @@ case class Get(targetR: Sentence, slotName: ID) extends Sentence
 case class Set(targetR: Sentence, slotName: ID, value: Sentence) extends Sentence
 case class Send(targetR: Sentence, messageName: ID, arguments: Seq[Sentence]) extends Sentence
 
-case class Length(targetA: Sentence) extends Sentence
 case class At(targetA: Sentence, indexN: Sentence) extends Sentence
 case class Put(targetA: Sentence, indexN: Sentence, value: Sentence) extends Sentence
 

@@ -56,8 +56,10 @@ object Eval {
 				)
 
 			case MKA(length) =>
-				val newArray = O((0 until length).map(n => Symbol(n.toString) -> -1).toMap)
-				val (newMemory, newArrayId) = memory.insert(newArray)
+				val lengthMethod = M(Seq(LOAD('$0), LENGTH))
+				val (memoryWithMethod, lengthMethodId) = memory.insert(lengthMethod)
+				val newArray = O((('length -> lengthMethodId) +: (0 until length).map(n => Symbol(n.toString) -> -1)).toMap)
+				val (newMemory, newArrayId) = memoryWithMethod.insert(newArray)
 
 				state.copy(
 					stack = newArrayId :: stack,

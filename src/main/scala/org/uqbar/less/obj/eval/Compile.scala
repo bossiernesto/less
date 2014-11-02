@@ -18,7 +18,6 @@ object Compile {
 		case Get(targetR, ID(slotName)) => compile(previous, targetR) :+ GET(slotName)
 		case Set(targetR, ID(slotName), value) => compile(compile(previous, value), targetR) :+ SET(slotName)
 		case Send(targetR, ID(messageName), arguments) => compile(compile(previous, arguments), targetR) :+ SEND(messageName, arguments.size)
-		case Length(targetA) => compile(previous, targetA) :+ LENGTH
 		case At(targetA, indexN) => compile(compile(previous, indexN), targetA) :+ AT
 		case Put(targetA, indexN, value) => compile(compile(compile(previous, value), targetA), indexN) :+ PUT
 		case Add(leftN, rightN) => compile(compile(previous, rightN), leftN) :+ ADD
