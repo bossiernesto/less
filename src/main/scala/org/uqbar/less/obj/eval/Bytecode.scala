@@ -7,7 +7,10 @@ case object EQ extends Bytecode
 case class GET(slotName: Symbol) extends Bytecode
 case class SET(slotName: Symbol) extends Bytecode
 case class SEND(messageName: Symbol, argumentCount: Int) extends Bytecode
-case class MKA(length: Int) extends Bytecode
+case object NEW extends Bytecode
+case class NEWA(length: Int) extends Bytecode
+case class NEWM(id: Symbol, body: Seq[Bytecode]) extends Bytecode
+case object DUP extends Bytecode
 case object LENGTH extends Bytecode
 case object AT extends Bytecode
 case object PUT extends Bytecode
@@ -23,5 +26,6 @@ case object LSTHN extends Bytecode
 case object GREQ extends Bytecode
 case object LSEQ extends Bytecode
 case class PUSH(v: Int) extends Bytecode
+case object POP extends Bytecode
 case class IFNZ(jump: Int) extends Bytecode
 case class GOTO(jump: Int) extends Bytecode

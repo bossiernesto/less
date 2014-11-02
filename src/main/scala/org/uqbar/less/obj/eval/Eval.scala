@@ -55,7 +55,40 @@ object Eval {
 					pc = pc + 1
 				)
 
-			case MKA(length) =>
+			case DUP =>
+				val top :: _ = stack
+				state.copy(
+					stack = top :: stack,
+					pc = pc + 1
+				)
+
+			case POP =>
+				val _ :: rest = stack
+				state.copy(
+					stack = rest,
+					pc = pc + 1
+				)
+
+			case NEW =>
+				val (newMemory, newId) = memory.insert(O(Map()))
+				state.copy(
+					stack = newId :: stack,
+					memory = newMemory,
+					pc = pc + 1
+				)
+
+			case NEWM(id, body) =>
+				val target :: rest = stack
+				val newMethod = M(body)
+				val (memoryWithMethod, newMethodId) = memory.insert(newMethod)
+
+				state.copy(
+					stack = rest,
+					memory = memoryWithMethod.updated(target, memoryWithMethod[O](target).updated(id, newMethodId)),
+					pc = pc + 1
+				)
+
+			case NEWA(length) =>
 				val lengthMethod = M(Seq(LOAD('$0), LENGTH))
 				val (memoryWithMethod, lengthMethodId) = memory.insert(lengthMethod)
 				val newArray = O((('length -> lengthMethodId) +: (0 until length).map(n => Symbol(n.toString) -> -1)).toMap)

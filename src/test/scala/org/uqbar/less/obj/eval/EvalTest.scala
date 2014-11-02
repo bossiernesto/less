@@ -79,13 +79,42 @@ class EvalTest extends FreeSpec with Matchers with BeforeAndAfter {
 			}
 		}
 
-		"MKA" - {
-			"should create an array of the specified size in memory and push a reference to it into the stack" in {
-				val result = Eval()(MKA(3))
+		"DUP" - {
+			"should duplicate the top entry in the stack" in {
+				val result = Eval(stack = 3 :: Nil)(DUP)
+
+				result.stack should be (3 :: 3 :: Nil)
+			}
+		}
+
+		"NEW" - {
+			"should create a new object in memory and push a reference to it into the stack" in {
+				val result = Eval()(NEW)
 
 				result.stack should have size 1
-				result.memory[O](result.stack.head).slots should have size 3
-				result.memory[O](result.stack.head).slots.keys should be (Set(Symbol("0"), Symbol("1"), Symbol("2")))
+				result.memory[O](result.stack.head).slots should have size 0
+			}
+		}
+
+		"NEWM" - {
+			"should pop an object from the stack and add to it a reference to a new method in memory" in {
+				val myObject = O(Map())
+				val methodBody = Seq(PUSH(5))
+				val result = Eval(stack = 3 :: Nil, memory = Memory(Map(3 -> myObject)))(NEWM('m, methodBody))
+
+				result.stack should be (Nil)
+				result.memory[O](3).slots should have size 1
+				result.memory[M](result.memory[O](3).slots('m)) should be (M(methodBody))
+			}
+		}
+
+		"NEWA" - {
+			"should create an array of the specified size in memory and push a reference to it into the stack" in {
+				val result = Eval()(NEWA(3))
+
+				result.stack should have size 1
+				result.memory[O](result.stack.head).slots should have size 3 + 1
+				result.memory[O](result.stack.head).slots.keys should be (Set(Symbol("0"), Symbol("1"), Symbol("2"), 'length))
 			}
 		}
 
@@ -289,6 +318,14 @@ class EvalTest extends FreeSpec with Matchers with BeforeAndAfter {
 				val result = Eval()(PUSH(5))
 
 				result.stack should be (5 :: Nil)
+			}
+		}
+
+		"POP" - {
+			"should discard the top entry in the stack" in {
+				val result = Eval(stack = 3 :: Nil)(POP)
+
+				result.stack should be (Nil)
 			}
 		}
 
