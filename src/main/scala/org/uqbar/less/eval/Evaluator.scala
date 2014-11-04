@@ -1,4 +1,6 @@
-package org.uqbar.less.obj.eval
+package org.uqbar.less.eval
+
+import org.uqbar.less.Bytecode._
 
 object Eval {
 

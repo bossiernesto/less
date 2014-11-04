@@ -1,7 +1,7 @@
-package org.uqbar.less.obj.parse
+package org.uqbar.less.parser
 
 import scala.util.parsing.combinator._
-import org.uqbar.less.obj._
+import org.uqbar.less.SemanticModel._
 
 object Parse extends Parse
 trait Parse extends RegexParsers {

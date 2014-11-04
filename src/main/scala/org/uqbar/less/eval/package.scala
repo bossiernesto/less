@@ -1,9 +1,8 @@
-package org.uqbar.less.obj
+package org.uqbar.less
 
-import org.uqbar.less.obj.eval.Bytecode
+import org.uqbar.less.Bytecode._
 
 package object eval {
-
 	type MemKey = Int
 
 	trait MemContent
@@ -31,4 +30,5 @@ package object eval {
 	type Locals = Map[Symbol, MemKey]
 
 	case class State(locals: Locals, stack: Stack, pc: Int, bytecode: Seq[Bytecode], memory: Memory)
+
 }

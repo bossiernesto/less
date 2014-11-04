@@ -1,7 +1,8 @@
 package org.uqbar.less.obj.eval
 
-import org.uqbar.less.obj._
-import org.uqbar.less.obj.{ O => Ob, M => Me }
+import org.uqbar.less.SemanticModel._
+import org.uqbar.less.SemanticModel.{ O => Ob, M => Me }
+import org.uqbar.less.Bytecode._
 
 object Compile {
 

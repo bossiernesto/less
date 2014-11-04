@@ -1,7 +1,7 @@
-package org.uqbar.less.obj.parse
+package org.uqbar.less.parser
 
-import org.uqbar.less.obj._
-import org.uqbar.less.obj.Preety._
+import org.uqbar.less.SemanticModel._
+import org.uqbar.less.Preety._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers

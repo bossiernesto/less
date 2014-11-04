@@ -1,12 +1,12 @@
-package org.uqbar.less.obj.eval
+package org.uqbar.less.eval
 
-import org.uqbar.less.obj.eval._
-import org.uqbar.less.obj.Preety._
+import org.uqbar.less.Preety._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
+import org.uqbar.less.Bytecode._
 
 class EvalTest extends FreeSpec with Matchers with BeforeAndAfter {
 
