@@ -6,9 +6,9 @@ package object eval {
 	type MemKey = Int
 
 	trait MemContent
-	case class I(value: Int) extends MemContent
-	case class M(bytecode: Seq[Bytecode]) extends MemContent
-	case class O(slots: Map[Symbol, MemKey]) extends MemContent {
+	case class MI(value: Int) extends MemContent
+	case class MM(bytecode: Seq[Bytecode]) extends MemContent
+	case class MO(slots: Map[Symbol, MemKey]) extends MemContent {
 		def apply(slotName: Symbol) = slots(slotName)
 		def updated(slotName: Symbol, value: MemKey) = copy(slots.updated(slotName, value))
 	}

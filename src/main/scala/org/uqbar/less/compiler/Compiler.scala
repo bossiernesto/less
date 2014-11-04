@@ -1,7 +1,6 @@
 package org.uqbar.less.obj.eval
 
 import org.uqbar.less.SemanticModel._
-import org.uqbar.less.SemanticModel.{ O => Ob, M => Me }
 import org.uqbar.less.Bytecode._
 
 object Compile {
@@ -12,10 +11,10 @@ object Compile {
 
 	protected def compile(previous: Seq[Bytecode], sentence: Sentence): Seq[Bytecode] = sentence match {
 		case R(ID(id)) => previous :+ LOAD(id)
-		case Ob(ID(id), body) => NEW +: DUP +: STORE(id) +: compile(previous, body) :+ POP
-		case Me(ID(id), _, body) => previous :+ DUP :+ NEWM(id, compile(Nil, body))
-		case N(n) => previous :+ PUSH(n)
+		case O(ID(id), body) => NEW +: DUP +: STORE(id) +: compile(previous, body) :+ POP
+		case M(ID(id), _, body) => previous :+ DUP :+ NEWM(id, compile(Nil, body))
 		case A(values) => (compile(previous, values.reverse) :+ NEWA(values.size)) ++ (0 until values.size flatMap { n => Seq(PUSH(n), PUT) })
+		case N(n) => previous :+ PUSH(n)
 
 		case Assign(ID(target), value) => compile(previous, value) :+ STORE(target)
 		case Eq(left, right) => compile(compile(previous, right), left) :+ EQ

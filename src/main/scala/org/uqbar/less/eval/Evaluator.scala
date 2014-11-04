@@ -33,14 +33,14 @@ object Eval {
 			case GET(slotName) =>
 				val target :: rest = stack
 				state.copy(
-					stack = memory[O](target)(slotName) :: rest,
+					stack = memory[MO](target)(slotName) :: rest,
 					pc = pc + 1
 				)
 
 			case SET(slotName: Symbol) =>
 				val target :: value :: rest = stack
 				state.copy(
-					memory = memory.updated(target, memory[O](target).updated(slotName, value)),
+					memory = memory.updated(target, memory[MO](target).updated(slotName, value)),
 					stack = rest,
 					pc = pc + 1
 				)
@@ -49,7 +49,7 @@ object Eval {
 				val target :: restWithArgs = stack
 				val (arguments, rest) = restWithArgs.splitAt(argumentCount)
 				val nextLocals = (target :: arguments).zipWithIndex.map{ case (a, i) => (Symbol(s"$$$i"), a) }.toMap
-				val nextBytecode = memory[M](memory[O](target)(messageName)).bytecode
+				val nextBytecode = memory[MM](memory[MO](target)(messageName)).bytecode
 				val State(_, result :: _, _, _, _) = eval(State(nextLocals, Nil, 0, nextBytecode, memory))
 
 				state.copy(
@@ -72,7 +72,7 @@ object Eval {
 				)
 
 			case NEW =>
-				val (newMemory, newId) = memory.insert(O(Map()))
+				val (newMemory, newId) = memory.insert(MO(Map()))
 				state.copy(
 					stack = newId :: stack,
 					memory = newMemory,
@@ -81,19 +81,19 @@ object Eval {
 
 			case NEWM(id, body) =>
 				val target :: rest = stack
-				val newMethod = M(body)
+				val newMethod = MM(body)
 				val (memoryWithMethod, newMethodId) = memory.insert(newMethod)
 
 				state.copy(
 					stack = rest,
-					memory = memoryWithMethod.updated(target, memoryWithMethod[O](target).updated(id, newMethodId)),
+					memory = memoryWithMethod.updated(target, memoryWithMethod[MO](target).updated(id, newMethodId)),
 					pc = pc + 1
 				)
 
 			case NEWA(length) =>
-				val lengthMethod = M(Seq(LOAD('$0), LENGTH))
+				val lengthMethod = MM(Seq(LOAD('$0), LENGTH))
 				val (memoryWithMethod, lengthMethodId) = memory.insert(lengthMethod)
-				val newArray = O((('length -> lengthMethodId) +: (0 until length).map(n => Symbol(n.toString) -> -1)).toMap)
+				val newArray = MO((('length -> lengthMethodId) +: (0 until length).map(n => Symbol(n.toString) -> -1)).toMap)
 				val (newMemory, newArrayId) = memoryWithMethod.insert(newArray)
 
 				state.copy(
@@ -104,7 +104,7 @@ object Eval {
 
 			case LENGTH =>
 				val target :: rest = stack
-				val length = memory[O](target).slots.keys.map(_.toString.tail.toInt).max + 1
+				val length = memory[MO](target).slots.keys.map(_.toString.tail.toInt).max + 1
 				state.copy(
 					stack = length :: rest,
 					pc = pc + 1
@@ -112,7 +112,7 @@ object Eval {
 
 			case AT =>
 				val target :: index :: rest = stack
-				val elem = memory[O](target)(Symbol(index.toString))
+				val elem = memory[MO](target)(Symbol(index.toString))
 				state.copy(
 					stack = elem :: rest,
 					pc = pc + 1
@@ -121,7 +121,7 @@ object Eval {
 			case PUT =>
 				val target :: value :: index :: rest = stack
 				state.copy(
-					memory = memory.updated(target, memory[O](target).updated(Symbol(index.toString), value)),
+					memory = memory.updated(target, memory[MO](target).updated(Symbol(index.toString), value)),
 					stack = rest,
 					pc = pc + 1
 				)
