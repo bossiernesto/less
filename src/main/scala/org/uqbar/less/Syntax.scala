@@ -1,38 +1,41 @@
 package org.uqbar.less
 
-object Syntax {
-	val identifier = "[a-z_A-Z][a-z_A-Z0-9]*"
-	val number = "-?[0-9]+"
-	val sentenceSep = ","
-	val assignOp = "="
-	val lineSep = ";"
-	val arrayOpen = "#["
-	val arrayClose = "]"
-	val codeOpen = "{"
-	val codeClose = "}"
-	val parensOpen = "("
-	val parensClose = ")"
-	val argOpen = "("
-	val argClose = ")"
-	val atOpen = "["
-	val atClose = "]"
-	val andOp = "&&"
-	val orOp = "||"
-	val eqOp = "=="
-	val neqOp = "!="
-	val geOp = ">="
-	val gtOp = ">"
-	val ltOp = "<"
-	val leOp = "<="
-	val addOp = "+"
-	val subOp = "-"
-	val mulOp = "*"
-	val divOp = "/"
-	val notOp = "!"
-	val access = "."
-	val ifKeyword = "if"
-	val whileKeyword = "while"
-	val elseKeyword = "else"
-	val defKeyword = "def"
-	val objectKeyword = "object"
+abstract class Syntax(defs: Map[Symbol, String]) {
+	def apply(key: Symbol) = defs(key).r
 }
+object Syntax extends Syntax(Map(
+	'identifier -> """[a-z_A-Z][a-z_A-Z0-9]*""",
+	'number -> """-?[0-9]+""",
+	'sentenceSep -> """,""",
+	'assignOp -> """=""",
+	'lineSep -> """;""",
+	'arrayOpen -> """#\[""",
+	'arrayClose -> """\]""",
+	'codeOpen -> """\{""",
+	'codeClose -> """\}""",
+	'parensOpen -> """\(""",
+	'parensClose -> """\)""",
+	'argOpen -> """\(""",
+	'argClose -> """\)""",
+	'atOpen -> """\[""",
+	'atClose -> """\]""",
+	'andOp -> """&&""",
+	'orOp -> """\|\|""",
+	'eqOp -> """==""",
+	'neqOp -> """!=""",
+	'geOp -> """>=""",
+	'gtOp -> """>""",
+	'ltOp -> """<""",
+	'leOp -> """<=""",
+	'addOp -> """\+""",
+	'subOp -> """-""",
+	'mulOp -> """\*""",
+	'divOp -> """/""",
+	'notOp -> """!""",
+	'access -> """\.""",
+	'ifKeyword -> """if""",
+	'whileKeyword -> """while""",
+	'elseKeyword -> """else""",
+	'defKeyword -> """def""",
+	'objectKeyword -> """object"""
+))

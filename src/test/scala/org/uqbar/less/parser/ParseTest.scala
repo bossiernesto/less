@@ -7,8 +7,11 @@ import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
+import org.uqbar.less.Syntax
 
 class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
+
+	def syntax = Syntax
 
 	"Parser" - {
 
