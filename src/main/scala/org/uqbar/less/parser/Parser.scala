@@ -11,7 +11,7 @@ trait Parse extends RegexParsers {
 
 	implicit def Symbol_to_Parser(key: Symbol): Parser[String] = { syntax(key).r }
 
-	def apply(target: String) = parse(program, target)
+	def apply(target: String) = parseAll(program, target)
 
 	protected lazy val identifier = 'identifier ^^ { id => ID(Symbol(id)) }
 	protected lazy val number = 'number ^^ { n => N(n.toInt) }

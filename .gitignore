@@ -4,3 +4,5 @@ target
 .settings
 .cache
 .README.md.html
+.worksheet
+*.sc
