@@ -268,6 +268,11 @@ class ParseTest extends FreeSpec with Matchers with BeforeAndAfter with Parse {
 
 			}
 		}
+
+		"should not be able to parse" in {
+
+			parseAll(program, """ ¿ """).successful should be(false)
+		}
 	}
 
 	//▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
