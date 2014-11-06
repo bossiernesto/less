@@ -9,7 +9,7 @@ object Parse extends Parse { val syntax = Syntax }
 trait Parse extends RegexParsers {
 	def syntax: Syntax
 
-	implicit def Symbol_to_Parser(key: Symbol): Parser[String] = { syntax(key) }
+	implicit def Symbol_to_Parser(key: Symbol): Parser[String] = { syntax(key).r }
 
 	def apply(target: String) = parse(program, target)
 

@@ -1,7 +1,7 @@
 package org.uqbar.less
 
 abstract class Syntax(defs: Map[Symbol, String]) {
-	def apply(key: Symbol) = defs(key).r
+	def apply(key: Symbol) = defs(key)
 }
 object Syntax extends Syntax(Map(
 	'identifier -> """[a-z_A-Z][a-z_A-Z0-9]*""",
