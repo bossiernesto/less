@@ -5,8 +5,8 @@ import org.uqbar.less.SemanticModel._
 import org.uqbar.less.Syntax
 
 //TODO: numbers, precedence and identifiers ignores syntax rules
-object Encoder extends Encoder { def _syntax = Syntax }
-trait Encoder {
+object Encode extends Encode { def _syntax = Syntax }
+trait Encode {
 	def apply(sentences: Sentence*) = sentences.map(encode(_)).mkString("\n")
 
 	def _syntax: Syntax
