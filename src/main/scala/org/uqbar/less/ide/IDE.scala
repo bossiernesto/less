@@ -30,7 +30,6 @@ object LessIDE extends SimpleSwingApplication {
 			}
 
 			contents += new EditorPane { //("text/html", s"<style>$styles</style><body> </body>") {
-				listenTo(this)
 				reactions += {
 					case _: ValueChanged =>
 						val r = Parse(text)
