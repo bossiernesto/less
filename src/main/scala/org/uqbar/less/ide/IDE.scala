@@ -12,9 +12,6 @@ import org.uqbar.less.parser.Parse
 import java.awt.Color
 
 object LessIDE extends SimpleSwingApplication {
-	val styles = """
-		h1{color: red;}
-	"""
 
 	def top = new MainFrame {
 		title = "Less IDE"
@@ -22,20 +19,23 @@ object LessIDE extends SimpleSwingApplication {
 		contents = new BoxPanel(Orientation.Vertical) {
 			contents += new MenuBar {
 				contents ++= Seq(menuButton("Open", "/icons/open.gif"){ ??? },
-					menuButton("Save", "/icons/save.gif"){ ??? },
+					menuButton("Save", "/icons/save.gif"){ editor.text = """{\rtf1 {Esto es un texto en {\b negrita}.}}""" },
 					menuButton("Refresh", "/icons/refresh.gif"){ ??? },
 					menuButton("Run", "/icons/run.gif"){ ??? },
 					HGlue
 				)
 			}
 
-			contents += new EditorPane { //("text/html", s"<style>$styles</style><body> </body>") {
+			val editor = new EditorPane("text/rtf", """{\rtf1 {Esto es un texto en {\b negrita}.}}""") {
+				println(peer.getDocument.getText(0, peer.getDocument.getLength))
+				listenTo(this)
 				reactions += {
 					case _: ValueChanged =>
-						val r = Parse(text)
+						val r = Parse(peer.getDocument.getText(0, peer.getDocument.getLength))
 						if (r.successful) background = Color.green else background = Color.red
 				}
 			}
+			contents += editor
 		}
 
 		size = new Dimension(800, 600)
