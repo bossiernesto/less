@@ -50,10 +50,10 @@ object Eval {
 				val (arguments, rest) = restWithArgs.splitAt(argumentCount)
 				val nextLocals = (target :: arguments).zipWithIndex.map{ case (a, i) => (Symbol(s"$$$i"), a) }.toMap
 				val nextBytecode = memory[MM](memory[MO](target)(messageName)).bytecode
-				val State(_, result :: _, _, _, _) = eval(State(nextLocals, Nil, 0, nextBytecode, memory))
+				val State(_, innerStack, _, _, _) = eval(State(nextLocals, Nil, 0, nextBytecode, memory))
 
 				state.copy(
-					stack = result :: rest,
+					stack = if (innerStack.isEmpty) rest else innerStack.head :: rest,
 					pc = pc + 1
 				)
 

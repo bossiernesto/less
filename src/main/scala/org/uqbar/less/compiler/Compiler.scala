@@ -12,7 +12,21 @@ object Compile {
 	protected def compile(previous: Seq[Bytecode], sentence: Sentence): Seq[Bytecode] = sentence match {
 		case R(ID(id)) => previous :+ LOAD(id)
 		case O(ID(id), body) => NEW +: DUP +: STORE(id) +: compile(previous, body) :+ POP
-		case M(ID(id), _, body) => previous :+ DUP :+ NEWM(id, compile(Nil, body))
+		case M(ID(id), args, body) =>
+			def replaceRefs(s: Bytecode): Bytecode = {
+				def indexOf(argName: Symbol) = {
+					val r = (ID('this) +: args).indexOf(ID(argName))
+					if (r < 0) throw new RuntimeException(s"Undefined argument $argName")
+					r
+				}
+				s match {
+					case LOAD(argName) => LOAD(Symbol(s"$$${indexOf(argName)}"))
+					case STORE(argName) => STORE(Symbol(s"$$${indexOf(argName)}"))
+					case _ => s
+				}
+			}
+			previous :+ DUP :+ NEWM(id, compile(Nil, body) map replaceRefs)
+
 		case A(values) => (compile(previous, values.reverse) :+ NEWA(values.size)) ++ (0 until values.size flatMap { n => Seq(PUSH(n), PUT) })
 		case N(n) => previous :+ PUSH(n)
 

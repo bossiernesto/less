@@ -1,6 +1,7 @@
 package org.uqbar.less
 
 import org.uqbar.less.Bytecode._
+import Math.max
 
 package object eval {
 	type MemKey = Int
@@ -14,13 +15,13 @@ package object eval {
 	}
 
 	case class Memory(value: Map[MemKey, MemContent] = Map()) {
-		protected var lastId = 0
 
-		def apply[T <: MemContent](key: MemKey) = value(key).asInstanceOf[T]
+		def apply[T <: MemContent](key: MemKey) = get[T](key).get
+		def get[T <: MemContent](key: MemKey) = value.get(key).asInstanceOf[Option[T]]
 
 		def insert(elem: MemContent) = {
-			lastId += 1
-			updated(lastId, elem) -> lastId
+			val nextId = value.keys.fold(0)(max) + 1
+			updated(nextId, elem) -> nextId
 		}
 
 		def updated(key: MemKey, elem: MemContent) = copy(value.updated(key, elem))
