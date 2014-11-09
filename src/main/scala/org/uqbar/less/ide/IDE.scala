@@ -43,14 +43,40 @@ object LessIDE extends SimpleSwingApplication {
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+		val runAction = menuButton("Run", "ctrl P"){ runInConsole }
+		val refreshAction = menuButton("Refresh", "ctrl R"){ refresh }
+		val saveAction = menuButton("Save", "ctrl S") { saveToFile }
+		val openAction = menuButton("Open", "ctrl O"){ openFile }
+
 		val editor = new EditorPane { //("text/rtf", """{\rtf1 }""") {
 			preferredSize = new Dimension(800, 400)
 
 			reactions += {
-				case _: ValueChanged => if (parse.successful) background = Color.green else background = Color.red
+				case _: ValueChanged =>
+					val parseResult = parse
+					statusBar.ok(parseResult.successful)
+					saveAction.enabled = parseResult.successful
+					runAction.enabled = parseResult.successful
 			}
 
 			def parse = Parse(peer.getDocument.getText(0, peer.getDocument.getLength))
+		}
+
+		val statusBar = new BorderPanel {
+			protected val status = new Label
+			protected val okIcon = new ImageIcon(getClass.getResource("/icons/Ok.gif"))
+			protected val errorIcon = new ImageIcon(getClass.getResource("/icons/Error.gif"))
+
+			add(status, East)
+			ok(true)
+
+			def ok(value: Boolean) = if (value) {
+				status.text = "Ok!"
+				status.icon = okIcon
+			} else {
+				status.text = "Error!"
+				status.icon = errorIcon
+			}
 		}
 
 		val console = new EditorPane {
@@ -75,13 +101,15 @@ object LessIDE extends SimpleSwingApplication {
 
 		contents = new BorderPanel {
 			add(toolBar(
-				menuButton("Open", "/icons/open.gif", "ctrl O"){ openFile },
-				menuButton("Save", "/icons/save.gif", "ctrl S") { saveToFile },
-				menuButton("Refresh", "/icons/refresh.gif", "ctrl R"){ refresh },
-				menuButton("Run", "/icons/run.gif", "ctrl P"){ runInConsole }
+				openAction,
+				saveAction,
+				refreshAction,
+				runAction
 			), North)
 
 			add(new SplitPane(Horizontal, new ScrollPane(editor), new ScrollPane(console)), Center)
+
+			add(statusBar, South)
 		}
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -94,9 +122,8 @@ object LessIDE extends SimpleSwingApplication {
 		// GUI BUILD
 		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-		protected def menuButton(name: String, imagePath: String = "", keystroke: String = "")(action: => Unit) = new MenuItem(Action("")(action)) {
-			tooltip = name
-			if (imagePath.nonEmpty) icon = new ImageIcon(getClass.getResource(imagePath)) else action.title = name
+		protected def menuButton(itemName: String, keystroke: String = "")(action: => Unit) = new MenuItem(Action("")(action)) {
+			Option(getClass.getResource(s"/icons/$itemName.gif")).fold{ action.title = name }{ r => icon = new ImageIcon(r) }
 			action.accelerator = Option(getKeyStroke(keystroke))
 			margin = new Insets(0, 0, 0, 20)
 		}
