@@ -7,7 +7,10 @@ import org.uqbar.less.Syntax
 //TODO: numbers, precedence and identifiers ignores syntax rules
 object Encode extends Encode { def _syntax = Syntax }
 trait Encode {
-	def apply(sentences: Sentence*) = sentences.map(encode(_)).mkString("\n")
+	def apply(sentences: Sentence*) = {
+		val r = sentences.map(s => encode(s) ++ lineSeparator(s)).mkString("")
+		if (r.endsWith("\n")) r.init else r
+	}
 
 	def _syntax: Syntax
 	def syntax(key: Symbol) = _syntax(key).replace("""\""", """""")
@@ -19,31 +22,31 @@ trait Encode {
 
 			case O(id, body) =>
 				syntax('objectKeyword) ++ " " ++ id.value.name ++ " " ++ syntax('codeOpen) ++ "\n" ++
-					body.flatMap(encode(_, level + 1)) ++ "\n" ++
-					syntax('codeClose)
+					body.flatMap(s => encode(s, level + 1) ++ lineSeparator(s)) ++
+					tabulation ++ syntax('codeClose)
 
 			case M(id, args, body) =>
 				syntax('defKeyword) ++ " " ++ id.value.name ++
 					args.map(_.value.name).mkString(syntax('parensOpen), syntax('sentenceSep) ++ " ", syntax('parensClose)) ++
 					syntax('codeOpen) ++ "\n" ++
-					body.flatMap(encode(_, level + 1)) ++ "\n" ++
-					syntax('codeClose)
+					body.flatMap(s => encode(s, level + 1) ++ lineSeparator(s)) ++
+					tabulation ++ syntax('codeClose)
 
 			case A(values) => values.map(encode(_)).mkString(syntax('arrayOpen), syntax('sentenceSep) ++ " ", syntax('arrayClose))
 
 			case N(value) => value.toString
 
-			case Assign(target, value) => target.value.name ++ " " ++ syntax('assignOp) ++ " " ++ encode(value) ++ syntax('lineSep)
+			case Assign(target, value) => target.value.name ++ " " ++ syntax('assignOp) ++ " " ++ encode(value)
 
 			case Eq(left, right) => encode(left) ++ " " ++ syntax('eqOp) ++ " " ++ encode(right)
 
 			case Get(targetR, slotName) => encode(targetR) ++ syntax('access) ++ slotName.value.name
-			case Set(targetR, slotName, value) => encode(targetR) ++ syntax('access) ++ slotName.value.name ++ " " ++ syntax('assignOp) ++ " " ++ encode(value) ++ syntax('lineSep)
+			case Set(targetR, slotName, value) => encode(targetR) ++ syntax('access) ++ slotName.value.name ++ " " ++ syntax('assignOp) ++ " " ++ encode(value)
 			case Send(targetR, messageName, arguments) => encode(targetR) ++ syntax('access) ++ messageName.value.name ++
 				arguments.map(encode(_)).mkString(syntax('argOpen), syntax('sentenceSep) ++ " ", syntax('argClose))
 
 			case At(targetA, indexN) => encode(targetA) ++ syntax('atOpen) ++ encode(indexN) ++ syntax('atClose)
-			case Put(targetA, indexN, value) => encode(targetA) ++ syntax('atOpen) ++ encode(indexN) ++ syntax('atClose) ++ " " ++ syntax('assignOp) ++ " " ++ encode(value) ++ syntax('lineSep)
+			case Put(targetA, indexN, value) => encode(targetA) ++ syntax('atOpen) ++ encode(indexN) ++ syntax('atClose) ++ " " ++ syntax('assignOp) ++ " " ++ encode(value)
 
 			case Add(leftN, rightN) => encode(leftN) ++ " " ++ syntax('addOp) ++ " " ++ encode(rightN)
 			case Sub(leftN, rightN) => encode(leftN) ++ " " ++ syntax('subOp) ++ " " ++ encode(rightN)
@@ -58,12 +61,17 @@ trait Encode {
 			case Or(leftN, rightN) => encode(leftN) ++ " " ++ syntax('orOp) ++ " " ++ encode(rightN)
 			case And(leftN, rightN) => encode(leftN) ++ " " ++ syntax('andOp) ++ " " ++ encode(rightN)
 			case If(conditionN, bodyTrue, bodyFalse) => syntax('ifKeyword) ++ syntax('argOpen) ++ encode(conditionN) ++ syntax('argClose) ++
-				bodyTrue.map(encode(_, level + 1)).mkString(syntax('codeOpen) ++ "\n", syntax('lineSep) ++ "\n", "\n" ++ syntax('codeClose) ++ "\n") ++
-				syntax('elseKeyword) ++ " " ++ bodyFalse.map(encode(_, level + 1)).mkString(syntax('codeOpen) ++ "\n", syntax('lineSep) ++ "\n", "\n" ++ syntax('codeClose))
+				syntax('codeOpen) ++ "\n" ++ bodyTrue.map(s => encode(s, level + 1) ++ lineSeparator(s)).mkString("") ++ tabulation ++ syntax('codeClose) ++ " " ++
+				syntax('elseKeyword) ++ " " ++ syntax('codeOpen) ++ "\n" ++ bodyFalse.map(s => encode(s, level + 1) ++ lineSeparator(s)).mkString("") ++ "\n" ++ tabulation ++ syntax('codeClose)
 			case While(conditionN, body) => syntax('whileKeyword) ++ syntax('argOpen) ++ encode(conditionN) ++ syntax('argClose) ++
-				body.map(encode(_, level + 1)).mkString(syntax('codeOpen) ++ "\n", syntax('lineSep) ++ "\n", "\n" ++ syntax('codeClose))
+				syntax('codeOpen) ++ "\n" ++ body.map(s => encode(s, level + 1) ++ lineSeparator(s)).mkString("") ++ "\n" ++ tabulation ++ syntax('codeClose)
 		}
 
 		tabulation ++ content
+	}
+
+	protected def lineSeparator(s: Sentence) = s match {
+		case (_: O | _: M | _: If | _: While) => "\n"
+		case _ => syntax('lineSep) ++ "\n"
 	}
 }
