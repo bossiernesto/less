@@ -34,8 +34,20 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import org.uqbar.less.eval.State
 import scala.collection.mutable.StringBuilder
+import scala.swing.event.SelectionChanged
+import scala.swing.event.ListSelectionChanged
+import ListView.IntervalMode._
+import javax.swing.border._
+import scala.swing.event.EditDone
+import java.text.NumberFormat
+import javax.swing.InputVerifier
+import scala.swing.event.KeyTyped
+import scala.swing.event.ButtonClicked
 
 object LessIDE extends SimpleSwingApplication {
+
+	val WORKSPACE = new File("/tmp/less-workspace")
+	val PREFERENCES_FILE = new File(WORKSPACE.getAbsoluteFile + "/.preferences")
 
 	def top = new MainFrame {
 
@@ -137,12 +149,59 @@ object LessIDE extends SimpleSwingApplication {
 			preferredSize = maximumSize
 		}
 
+		protected def preferenceInput(p: Preference[_], currentValue: Any, setPreference: (Preference[_], Any) => Unit) = p match {
+
+			case b: BooleanPreference => new CheckBox {
+				selected = b(currentValue)
+				maximumSize = new Dimension(Int.MaxValue, 28)
+				preferredSize = new Dimension(250, 28)
+				reactions += { case _: ButtonClicked => setPreference(p, selected) }
+			}
+
+			case i @ IntPreference(_, _, _, None) => new TextField {
+				text = i(currentValue).toString
+				maximumSize = new Dimension(Int.MaxValue, 28)
+				preferredSize = new Dimension(250, 28)
+				listenTo(keys)
+				reactions += {
+					case _: ValueChanged => setPreference(p, text.toInt)
+					case e: KeyTyped if !e.char.isDigit => e.consume
+				}
+			}
+
+			case i @ IntPreference(_, _, _, Some(range)) => new Slider {
+				labels = (range.min to range.max).map(n => n -> new Label(n.toString)).toMap
+				paintLabels = true
+				min = range.min
+				max = range.max
+				value = i(currentValue)
+				maximumSize = new Dimension(Int.MaxValue, 32)
+				preferredSize = new Dimension(250, 32)
+				reactions += { case _: ValueChanged => setPreference(p, value) }
+			}
+
+			case s @ StringPreference(_, _, _, None) => new TextField {
+				text = s(currentValue)
+				maximumSize = new Dimension(Int.MaxValue, 28)
+				preferredSize = new Dimension(250, 28)
+				reactions += { case _: ValueChanged => setPreference(p, text) }
+			}
+
+			case s @ StringPreference(_, _, _, Some(values)) => new ComboBox(values) {
+				selection.index = values.indexOf(currentValue)
+				maximumSize = new Dimension(Int.MaxValue, 28)
+				preferredSize = new Dimension(250, 28)
+				listenTo(selection)
+				reactions += { case _: SelectionChanged => setPreference(p, selection.item) }
+			}
+		}
+
 		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 		// ACTIONS
 		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 		protected def openFile {
-			val chooser = new FileChooser { title = "Open..." }
+			val chooser = new FileChooser(WORKSPACE) { title = "Open..." }
 			chooser.showOpenDialog(null)
 			file = Option(chooser.selectedFile)
 
@@ -151,7 +210,7 @@ object LessIDE extends SimpleSwingApplication {
 
 		protected def saveToFile {
 			file = file.fold {
-				val chooser = new FileChooser { title = "Save as..." }
+				val chooser = new FileChooser(WORKSPACE) { title = "Save as..." }
 				chooser.showOpenDialog(null)
 				Option(chooser.selectedFile)
 			}{ _ => file }
@@ -174,12 +233,54 @@ object LessIDE extends SimpleSwingApplication {
 		protected def config {
 			new Dialog(this) {
 				modal = true
+				resizable = false
+
+				var updatedPreferenceFixture = preferenceFixture.copy()
 
 				contents = new BorderPanel {
+					val categories = new ListView(updatedPreferenceFixture.categories) {
+						selection.intervalMode = Single
+					}
+					val preferenceDisplay = new BoxPanel(Vertical) {
+						listenTo(categories.selection)
+						reactions += { case SelectionChanged(`categories`) => setContent }
+
+						protected def setContent {
+							val category = categories.listData(categories.selection.leadIndex)
+							val preferences = updatedPreferenceFixture.preferences.filter(_._1.category == category)
+
+							contents.clear
+							for ((preference, value) <- preferences) {
+								contents += new BoxPanel(Horizontal) {
+									xLayoutAlignment = 0
+									contents ++= Seq(
+										new Label(preference.name + ": ") {
+											horizontalAlignment = Alignment.Right
+											minimumSize = new Dimension(250, 0)
+											maximumSize = new Dimension(250, 28)
+											preferredSize = maximumSize
+										},
+										preferenceInput(preference, value, (p: Preference[_], v: Any) => updatedPreferenceFixture = updatedPreferenceFixture.updated(p, v))
+									)
+								}
+							}
+							revalidate
+							repaint
+						}
+					}
+
+					minimumSize = new Dimension(600, 500)
+					maximumSize = new Dimension(600, 500)
+					preferredSize = maximumSize
+
+					add(new ScrollPane(categories), West)
+					add(new ScrollPane(preferenceDisplay), Center)
+					categories.selectIndices(0)
+
 					add(new BorderPanel {
 						add(new FlowPanel(
-							Button("Cancel"){},
-							Button("Accept"){}
+							Button("Cancel"){ close },
+							Button("Accept"){ savePreferences(updatedPreferenceFixture); close }
 						), East)
 					}, South)
 				}
@@ -192,6 +293,42 @@ object LessIDE extends SimpleSwingApplication {
 		protected def runInConsole {
 			console log Eval()(Compile(editor.parse.get): _*)
 		}
+	}
+
+	//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+	// PREFERENCES
+	//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+	val preferences = Seq(
+		IntPreference("Tabulation Size", "Tabulation", 2, Some(1 to 12)),
+		BooleanPreference("Tabulate with Tabs", "Tabulation", true),
+		BooleanPreference("After if", "Spacing", false),
+		BooleanPreference("After else", "Spacing", false),
+		BooleanPreference("After while", "Spacing", false),
+		BooleanPreference("After object name", "Spacing", false),
+		BooleanPreference("After method name", "Spacing", false),
+		BooleanPreference("After method arguments", "Spacing", false),
+		BooleanPreference("After message arguments", "Spacing", false),
+		BooleanPreference("Before message arguments", "Spacing", false),
+		BooleanPreference("Before each message argument", "Spacing", false),
+		BooleanPreference("After each message argument", "Spacing", true)
+	)
+
+	var preferenceFixture: PreferenceFixture = _
+	if (PREFERENCES_FILE.exists) loadPreferences
+	else savePreferences(PreferenceFixture(preferences.map(p => p -> p.default).toMap))
+
+	protected def savePreferences(fixture: PreferenceFixture) {
+		val out = new ObjectOutputStream(new FileOutputStream(PREFERENCES_FILE))
+		preferenceFixture = fixture
+		out.writeObject(preferenceFixture)
+		out.close
+	}
+
+	protected def loadPreferences {
+		val in = new ObjectInputStream(new FileInputStream(PREFERENCES_FILE))
+		preferenceFixture = in.readObject.asInstanceOf[PreferenceFixture]
+		in.close
 	}
 
 }
