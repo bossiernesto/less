@@ -220,6 +220,8 @@ object LessIDE extends SimpleSwingApplication {
 				out.writeObject(editor.parse.get)
 				out.close
 			}
+
+			refresh
 		}
 
 		protected def refresh {
@@ -280,7 +282,7 @@ object LessIDE extends SimpleSwingApplication {
 					add(new BorderPanel {
 						add(new FlowPanel(
 							Button("Cancel"){ close },
-							Button("Accept"){ savePreferences(updatedPreferenceFixture); close }
+							Button("Accept"){ savePreferences(updatedPreferenceFixture); refresh; close }
 						), East)
 					}, South)
 				}
@@ -314,7 +316,7 @@ object LessIDE extends SimpleSwingApplication {
 		BooleanPreference("After each message argument", "Spacing", true)
 	)
 
-	var preferenceFixture: PreferenceFixture = _
+	implicit var preferenceFixture: PreferenceFixture = _
 	if (PREFERENCES_FILE.exists) loadPreferences
 	else savePreferences(PreferenceFixture(preferences.map(p => p -> p.default).toMap))
 

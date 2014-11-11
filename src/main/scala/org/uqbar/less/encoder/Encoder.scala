@@ -3,20 +3,22 @@ package org.uqbar.less.encoder
 import scala.language.implicitConversions
 import org.uqbar.less.SemanticModel._
 import org.uqbar.less.Syntax
+import org.uqbar.less.ide.PreferenceFixture
+import org.uqbar.less.ide.PreferenceFixture
 
 //TODO: numbers, precedence and identifiers ignores syntax rules
 object Encode extends Encode { def _syntax = Syntax }
 trait Encode {
-	def apply(sentences: Sentence*) = {
-		val r = sentences.map(s => encode(s) ++ lineSeparator(s)).mkString("")
+	def apply(sentences: Sentence*)(implicit prefs: PreferenceFixture) = {
+		val r = sentences.map(s => encode(s)(prefs) ++ lineSeparator(s)).mkString("")
 		if (r.endsWith("\n")) r.init else r
 	}
 
 	def _syntax: Syntax
 	def syntax(key: Symbol) = _syntax(key).replace("""\""", """""")
 
-	protected def encode(sentence: Sentence, level: Int = 0): String = {
-		val tabulation = ("" /: (0 until level)){ (a, _) => a ++ " " }
+	protected def encode(sentence: Sentence, level: Int = 0)(implicit prefs: PreferenceFixture): String = {
+		val tabulation = " " * (level * prefs[Int]("Tabulation", "Tabulation Size"))
 		val content = sentence match {
 			case R(id) => id.value.name
 
