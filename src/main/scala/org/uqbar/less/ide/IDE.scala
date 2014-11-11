@@ -47,6 +47,7 @@ object LessIDE extends SimpleSwingApplication {
 		val refreshAction = menuButton("Refresh", "ctrl R"){ refresh }
 		val saveAction = menuButton("Save", "ctrl S") { saveToFile }
 		val openAction = menuButton("Open", "ctrl O"){ openFile }
+		val configAction = menuButton("Config", "ctrl F"){ config }
 
 		val editor = new EditorPane { //("text/rtf", """{\rtf1 }""") {
 			preferredSize = new Dimension(800, 400)
@@ -104,7 +105,8 @@ object LessIDE extends SimpleSwingApplication {
 				openAction,
 				saveAction,
 				refreshAction,
-				runAction
+				runAction,
+				configAction
 			), North)
 
 			add(new SplitPane(Horizontal, new ScrollPane(editor), new ScrollPane(console)), Center)
@@ -166,6 +168,24 @@ object LessIDE extends SimpleSwingApplication {
 				val in = new ObjectInputStream(new FileInputStream(file))
 				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*)
 				in.close
+			}
+		}
+
+		protected def config {
+			new Dialog(this) {
+				modal = true
+
+				contents = new BorderPanel {
+					add(new BorderPanel {
+						add(new FlowPanel(
+							Button("Cancel"){},
+							Button("Accept"){}
+						), East)
+					}, South)
+				}
+
+				centerOnScreen
+				open
 			}
 		}
 
