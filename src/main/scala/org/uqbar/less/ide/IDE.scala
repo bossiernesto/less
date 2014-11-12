@@ -305,20 +305,41 @@ object LessIDE extends SimpleSwingApplication {
 		IntPreference("Tabulation Size", "Tabulation", 2, Some(1 to 12)),
 		BooleanPreference("Tabulate with Tabs", "Tabulation", true),
 		BooleanPreference("After if", "Spacing", false),
+		BooleanPreference("Before if condition", "Spacing", false),
+		BooleanPreference("After if condition", "Spacing", false),
+		BooleanPreference("After if argument", "Spacing", true),
+		BooleanPreference("Before else", "Spacing", false),
 		BooleanPreference("After else", "Spacing", false),
 		BooleanPreference("After while", "Spacing", false),
+		BooleanPreference("Before while condition", "Spacing", false),
+		BooleanPreference("After while condition", "Spacing", false),
+		BooleanPreference("After while argument", "Spacing", true),
+		BooleanPreference("After not", "Spacing", false),
 		BooleanPreference("After object name", "Spacing", false),
 		BooleanPreference("After method name", "Spacing", false),
 		BooleanPreference("After method arguments", "Spacing", false),
-		BooleanPreference("After message arguments", "Spacing", false),
-		BooleanPreference("Before message arguments", "Spacing", false),
+		BooleanPreference("Before each method argument", "Spacing", false),
+		BooleanPreference("After each method argument", "Spacing", true),
+		BooleanPreference("Before each array argument", "Spacing", false),
+		BooleanPreference("After each array argument", "Spacing", true),
+		BooleanPreference("Before assign", "Spacing", true),
+		BooleanPreference("After assign", "Spacing", true),
+		BooleanPreference("Before operator", "Spacing", true),
+		BooleanPreference("After operator", "Spacing", true),
+		BooleanPreference("Before array index", "Spacing", false),
+		BooleanPreference("After array index", "Spacing", false),
+		BooleanPreference("After message name", "Spacing", false),
 		BooleanPreference("Before each message argument", "Spacing", false),
 		BooleanPreference("After each message argument", "Spacing", true)
 	)
 
 	implicit var preferenceFixture: PreferenceFixture = _
-	if (PREFERENCES_FILE.exists) loadPreferences
-	else savePreferences(PreferenceFixture(preferences.map(p => p -> p.default).toMap))
+
+	val defaultPreferenceFixture = PreferenceFixture(preferences.map(p => p -> p.default).toMap)
+	if (PREFERENCES_FILE.exists) {
+		loadPreferences
+		if (preferenceFixture.preferences.size != preferences.size) savePreferences(defaultPreferenceFixture)
+	} else savePreferences(defaultPreferenceFixture)
 
 	protected def savePreferences(fixture: PreferenceFixture) {
 		val out = new ObjectOutputStream(new FileOutputStream(PREFERENCES_FILE))
