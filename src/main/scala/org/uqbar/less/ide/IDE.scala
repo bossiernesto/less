@@ -34,15 +34,29 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import org.uqbar.less.eval.State
 import scala.collection.mutable.StringBuilder
+import javax.swing.border._
 import scala.swing.event.SelectionChanged
 import scala.swing.event.ListSelectionChanged
 import ListView.IntervalMode._
-import javax.swing.border._
 import scala.swing.event.EditDone
 import java.text.NumberFormat
 import javax.swing.InputVerifier
 import scala.swing.event.KeyTyped
 import scala.swing.event.ButtonClicked
+import javax.swing.text.StyleContext
+import javax.swing.text.DefaultStyledDocument
+import javax.swing.text.Style
+import javax.swing.text.StyleConstants
+import javax.swing.JTextPane
+import javax.swing.text.StyledEditorKit
+import javax.swing.text.PlainDocument
+import javax.swing.text.TabSet
+import javax.swing.text.TabStop
+import java.awt.Font
+import java.awt.Toolkit
+import java.awt.FontMetrics
+import java.awt.font.FontRenderContext
+import java.awt.geom.AffineTransform
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -92,19 +106,68 @@ object LessIDE extends SimpleSwingApplication {
 			}
 		}
 
-		val console = new EditorPane {
+		//		new TextComponent {
+		//        override lazy val peer: JTextPane = new JTextPane() with SuperMixin {
+		//
+		//          setEditorKit(new StyledEditorKit())
+		//
+		//          SwingKit.executeLater {
+		//            val document = peer.getDocument
+		//            val kit = peer.getEditorKit
+		//            val reader = new StringReader("Hi there!")
+		//
+		//            kit.read(reader, document, 0)
+		//          }
+		//        }
+		//      }
+
+		val console = new TextComponent {
 			editable = false
 			background = Color.lightGray.brighter
 
+			override lazy val peer: JTextPane = new JTextPane with SuperMixin {
+				setEditorKit(new StyledEditorKit)
+			}
+
+			val styleContext = new StyleContext
+			val document = new DefaultStyledDocument(styleContext)
+			peer.setDocument(document)
+
+			val defaultStyle = styleContext.getStyle(StyleContext.DEFAULT_STYLE)
+			val mainStyle = styleContext.addStyle("MainStyle", defaultStyle)
+
+			val fontName = "Monospace"
+			val fontSize = 10
+
+			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
+			StyleConstants.setFontFamily(mainStyle, fontName)
+			StyleConstants.setFontSize(mainStyle, 10)
+			StyleConstants.setTabSet(mainStyle, new TabSet((1 to 20).map(i => new TabStop(i * charWidth * 4)).toArray))
+
+			val boldStyle = styleContext.addStyle("MainStyle", mainStyle)
+			StyleConstants.setBold(boldStyle, true)
+
+			val italicStyle = styleContext.addStyle("MainStyle", mainStyle)
+			StyleConstants.setItalic(italicStyle, true)
+			StyleConstants.setForeground(italicStyle, Color.blue)
+
+			document.setLogicalStyle(0, mainStyle)
+
 			protected def now = new SimpleDateFormat("HH:mm:ss").format(new Date)
-			def log(s: String) = text += s"$now >> $s"
+			def log(s: String) = {
+				val currentSize = text.size
+				val header = s"$now >> "
+				document.insertString(currentSize, s"$header$s\n", null)
+				document.setCharacterAttributes(currentSize, header.size, boldStyle, true)
+				document.setCharacterAttributes(currentSize, now.size, italicStyle, false)
+			}
 			def log(s: State) {
 				val buffer = new StringBuilder("------------------------------------")
-				buffer ++= s"\n  stack: ${s.stack.mkString("[", ",", "]")}"
-				buffer ++= s"\n  locals:"
-				for ((k, v) <- s.locals) buffer ++= s"\n    $k: $v"
-				buffer ++= s"\n  memory:"
-				for ((k, v) <- s.memory.value) buffer ++= s"\n    $k: $v"
+				buffer ++= s"\n\tstack: ${s.stack.mkString("[", ",", "]")}"
+				buffer ++= s"\n\tlocals:"
+				for ((k, v) <- s.locals) buffer ++= s"\n\t\t$k: $v"
+				buffer ++= s"\n\tmemory:"
+				for ((k, v) <- s.memory.value) buffer ++= s"\n\t\t$k: $v"
 
 				log(buffer.toString)
 			}
@@ -336,6 +399,8 @@ object LessIDE extends SimpleSwingApplication {
 	implicit var preferenceFixture: PreferenceFixture = _
 
 	val defaultPreferenceFixture = PreferenceFixture(preferences.map(p => p -> p.default).toMap)
+
+	if (!WORKSPACE.exists) WORKSPACE.mkdirs
 	if (PREFERENCES_FILE.exists) {
 		loadPreferences
 		if (preferenceFixture.preferences.size != preferences.size) savePreferences(defaultPreferenceFixture)
