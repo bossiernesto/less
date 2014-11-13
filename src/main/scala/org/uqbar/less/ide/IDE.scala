@@ -1,62 +1,74 @@
 package org.uqbar.less.ide
 
-import scala.language.reflectiveCalls
-import scala.swing._
-import scala.swing.Swing._
-import javax.swing.ImageIcon
-import javax.swing.UIManager
-import scala.swing.event.EditDone
-import scala.swing.event.KeyTyped
-import scala.swing.event.ValueChanged
-import scala.swing.event.Event
-import org.uqbar.less.parser.Parse
 import java.awt.Color
-import java.io.File
-import java.io.FileOutputStream
-import java.io.ObjectOutputStream
-import java.io.ObjectInputStream
-import java.io.FileInputStream
-import org.uqbar.less.encoder.Encode
-import org.uqbar.less.SemanticModel._
-import javax.swing.KeyStroke
-import javax.swing.KeyStroke._
-import java.awt.event.KeyEvent._
-import java.awt.event.ActionEvent._
-import javax.swing.JComponent
-import javax.swing.JToolBar
-import BorderPanel.Position._
-import Orientation._
-import scala.swing.Action
-import org.uqbar.less.eval.Eval
-import org.uqbar.less.obj.eval.Compile
-import java.util.Date
-import java.util.Calendar
-import java.text.SimpleDateFormat
-import org.uqbar.less.eval.State
-import scala.collection.mutable.StringBuilder
-import javax.swing.border._
-import scala.swing.event.SelectionChanged
-import scala.swing.event.ListSelectionChanged
-import ListView.IntervalMode._
-import scala.swing.event.EditDone
-import java.text.NumberFormat
-import javax.swing.InputVerifier
-import scala.swing.event.KeyTyped
-import scala.swing.event.ButtonClicked
-import javax.swing.text.StyleContext
-import javax.swing.text.DefaultStyledDocument
-import javax.swing.text.Style
-import javax.swing.text.StyleConstants
-import javax.swing.JTextPane
-import javax.swing.text.StyledEditorKit
-import javax.swing.text.PlainDocument
-import javax.swing.text.TabSet
-import javax.swing.text.TabStop
 import java.awt.Font
-import java.awt.Toolkit
-import java.awt.FontMetrics
 import java.awt.font.FontRenderContext
 import java.awt.geom.AffineTransform
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import scala.collection.mutable.StringBuilder
+import scala.language.reflectiveCalls
+import scala.swing.Action
+import scala.swing.Alignment
+import scala.swing.BorderPanel
+import scala.swing.BorderPanel.Position.Center
+import scala.swing.BorderPanel.Position.East
+import scala.swing.BorderPanel.Position.North
+import scala.swing.BorderPanel.Position.South
+import scala.swing.BorderPanel.Position.West
+import scala.swing.BoxPanel
+import scala.swing.Button
+import scala.swing.CheckBox
+import scala.swing.Component
+import scala.swing.Dialog
+import scala.swing.Dimension
+import scala.swing.FileChooser
+import scala.swing.FlowPanel
+import scala.swing.Insets
+import scala.swing.Label
+import scala.swing.ListView.IntervalMode.Single
+import scala.swing.MainFrame
+import scala.swing.MenuItem
+import scala.swing.Orientation.Horizontal
+import scala.swing.Orientation.Vertical
+import scala.swing.ScrollPane
+import scala.swing.SequentialContainer
+import scala.swing.SimpleSwingApplication
+import scala.swing.Slider
+import scala.swing.SplitPane
+import scala.swing.TextComponent
+import scala.swing.TextField
+import scala.swing.event.ButtonClicked
+import scala.swing.event.KeyTyped
+import scala.swing.event.SelectionChanged
+import scala.swing.event.ValueChanged
+import org.uqbar.less.Bytecode._
+import org.uqbar.less.SemanticModel.Sentence
+import org.uqbar.less.SemanticModel._
+import org.uqbar.less.encoder.Encode
+import org.uqbar.less.eval.Eval
+import org.uqbar.less.eval.State
+import org.uqbar.less.obj.eval.Compile
+import org.uqbar.less.parser.Parse
+import javax.swing.ImageIcon
+import javax.swing.JTextPane
+import javax.swing.JToolBar
+import javax.swing.KeyStroke.getKeyStroke
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
+import javax.swing.text.DefaultStyledDocument
+import javax.swing.text.StyleConstants
+import javax.swing.text.StyleContext
+import javax.swing.text.StyledEditorKit
+import javax.swing.text.TabSet
+import javax.swing.text.TabStop
+import scala.swing.ComboBox
+import scala.swing.ListView
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -75,8 +87,32 @@ object LessIDE extends SimpleSwingApplication {
 		val openAction = menuButton("Open", "ctrl O"){ openFile }
 		val configAction = menuButton("Config", "ctrl F"){ config }
 
-		val editor = new EditorPane { //("text/rtf", """{\rtf1 }""") {
+		val editor = new TextComponent {
+
 			preferredSize = new Dimension(800, 400)
+
+			override lazy val peer: JTextPane = new JTextPane with SuperMixin { setEditorKit(new StyledEditorKit) }
+
+			val styleContext = new StyleContext
+			val me: TextComponent = this
+			val document = new DefaultStyledDocument(styleContext) {
+				addDocumentListener(new DocumentListener {
+					def changedUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+					def insertUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+					def removeUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+				})
+				peer.setDocument(this)
+			}
+
+			val defaultStyle = styleContext.getStyle(StyleContext.DEFAULT_STYLE)
+
+			val fontName = "Ubuntu Mono"
+			val fontSize = 15
+
+			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
+			StyleConstants.setFontFamily(defaultStyle, fontName)
+			StyleConstants.setFontSize(defaultStyle, fontSize)
+			StyleConstants.setTabSet(defaultStyle, new TabSet((1 to 100).map(i => new TabStop(i * charWidth * 4)).toArray))
 
 			reactions += {
 				case _: ValueChanged =>
@@ -106,21 +142,6 @@ object LessIDE extends SimpleSwingApplication {
 			}
 		}
 
-		//		new TextComponent {
-		//        override lazy val peer: JTextPane = new JTextPane() with SuperMixin {
-		//
-		//          setEditorKit(new StyledEditorKit())
-		//
-		//          SwingKit.executeLater {
-		//            val document = peer.getDocument
-		//            val kit = peer.getEditorKit
-		//            val reader = new StringReader("Hi there!")
-		//
-		//            kit.read(reader, document, 0)
-		//          }
-		//        }
-		//      }
-
 		val console = new TextComponent {
 			editable = false
 			background = Color.lightGray.brighter
@@ -130,8 +151,15 @@ object LessIDE extends SimpleSwingApplication {
 			}
 
 			val styleContext = new StyleContext
-			val document = new DefaultStyledDocument(styleContext)
-			peer.setDocument(document)
+			val me: TextComponent = this
+			val document = new DefaultStyledDocument(styleContext) {
+				addDocumentListener(new DocumentListener {
+					def changedUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+					def insertUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+					def removeUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
+				})
+				peer.setDocument(this)
+			}
 
 			val defaultStyle = styleContext.getStyle(StyleContext.DEFAULT_STYLE)
 			val mainStyle = styleContext.addStyle("MainStyle", defaultStyle)
@@ -141,8 +169,8 @@ object LessIDE extends SimpleSwingApplication {
 
 			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
 			StyleConstants.setFontFamily(mainStyle, fontName)
-			StyleConstants.setFontSize(mainStyle, 10)
-			StyleConstants.setTabSet(mainStyle, new TabSet((1 to 20).map(i => new TabStop(i * charWidth * 4)).toArray))
+			StyleConstants.setFontSize(mainStyle, fontSize)
+			StyleConstants.setTabSet(mainStyle, new TabSet((1 to 100).map(i => new TabStop(i * charWidth * 2)).toArray))
 
 			val boldStyle = styleContext.addStyle("MainStyle", mainStyle)
 			StyleConstants.setBold(boldStyle, true)
