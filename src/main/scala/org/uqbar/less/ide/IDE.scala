@@ -1,6 +1,7 @@
 package org.uqbar.less.ide
 
 import java.awt.Color
+import java.awt.Color._
 import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.awt.geom.AffineTransform
@@ -56,19 +57,14 @@ import org.uqbar.less.eval.State
 import org.uqbar.less.obj.eval.Compile
 import org.uqbar.less.parser.Parse
 import javax.swing.ImageIcon
-import javax.swing.JTextPane
 import javax.swing.JToolBar
 import javax.swing.KeyStroke.getKeyStroke
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
-import javax.swing.text.DefaultStyledDocument
-import javax.swing.text.StyleConstants
-import javax.swing.text.StyleContext
-import javax.swing.text.StyledEditorKit
-import javax.swing.text.TabSet
+import javax.swing.text.{ TabSet => JTabSet }
 import javax.swing.text.TabStop
 import scala.swing.ComboBox
 import scala.swing.ListView
+import org.uqbar.less.ide.components._
+import org.uqbar.less.ide.components.StyleAttribute._
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -87,32 +83,19 @@ object LessIDE extends SimpleSwingApplication {
 		val openAction = menuButton("Open", "ctrl O"){ openFile }
 		val configAction = menuButton("Config", "ctrl F"){ config }
 
-		val editor = new TextComponent {
+		val editor = new FormattedTextArea {
 
 			preferredSize = new Dimension(800, 400)
 
-			override lazy val peer: JTextPane = new JTextPane with SuperMixin { setEditorKit(new StyledEditorKit) }
-
-			val styleContext = new StyleContext
-			val me: TextComponent = this
-			val document = new DefaultStyledDocument(styleContext) {
-				addDocumentListener(new DocumentListener {
-					def changedUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-					def insertUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-					def removeUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-				})
-				peer.setDocument(this)
-			}
-
-			val defaultStyle = styleContext.getStyle(StyleContext.DEFAULT_STYLE)
-
 			val fontName = "Ubuntu Mono"
 			val fontSize = 15
-
 			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
-			StyleConstants.setFontFamily(defaultStyle, fontName)
-			StyleConstants.setFontSize(defaultStyle, fontSize)
-			StyleConstants.setTabSet(defaultStyle, new TabSet((1 to 100).map(i => new TabStop(i * charWidth * 4)).toArray))
+
+			defineStyle('default)(
+				FontFamily(fontName),
+				FontSize(fontSize),
+				TabSet(new JTabSet((1 to 100).map(i => new TabStop(i * charWidth * 4)).toArray))
+			)
 
 			reactions += {
 				case _: ValueChanged =>
@@ -142,62 +125,41 @@ object LessIDE extends SimpleSwingApplication {
 			}
 		}
 
-		val console = new TextComponent {
+		val console = new FormattedTextArea {
 			editable = false
 			background = Color.lightGray.brighter
 
-			override lazy val peer: JTextPane = new JTextPane with SuperMixin {
-				setEditorKit(new StyledEditorKit)
-			}
-
-			val styleContext = new StyleContext
-			val me: TextComponent = this
-			val document = new DefaultStyledDocument(styleContext) {
-				addDocumentListener(new DocumentListener {
-					def changedUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-					def insertUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-					def removeUpdate(e: DocumentEvent) { publish(new ValueChanged(me)) }
-				})
-				peer.setDocument(this)
-			}
-
-			val defaultStyle = styleContext.getStyle(StyleContext.DEFAULT_STYLE)
-			val mainStyle = styleContext.addStyle("MainStyle", defaultStyle)
-
 			val fontName = "Monospace"
 			val fontSize = 10
-
 			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
-			StyleConstants.setFontFamily(mainStyle, fontName)
-			StyleConstants.setFontSize(mainStyle, fontSize)
-			StyleConstants.setTabSet(mainStyle, new TabSet((1 to 100).map(i => new TabStop(i * charWidth * 2)).toArray))
 
-			val boldStyle = styleContext.addStyle("MainStyle", mainStyle)
-			StyleConstants.setBold(boldStyle, true)
+			defineStyle('default)(
+				FontFamily(fontName),
+				FontSize(fontSize),
+				TabSet(new JTabSet((1 to 100).map(i => new TabStop(i * charWidth * 2)).toArray))
+			)
 
-			val italicStyle = styleContext.addStyle("MainStyle", mainStyle)
-			StyleConstants.setItalic(italicStyle, true)
-			StyleConstants.setForeground(italicStyle, Color.blue)
-
-			document.setLogicalStyle(0, mainStyle)
+			defineStyle('info, 'default)(FontColor(BLUE))
+			defineStyle('warning, 'default)(FontColor(YELLOW.darker))
+			defineStyle('error, 'default)(FontColor(RED))
+			defineStyle('ok, 'default)(FontColor(GREEN.darker))
+			defineStyle('header, 'default)(Italic(true))
 
 			protected def now = new SimpleDateFormat("HH:mm:ss").format(new Date)
-			def log(s: String) = {
-				val currentSize = text.size
-				val header = s"$now >> "
-				document.insertString(currentSize, s"$header$s\n", null)
-				document.setCharacterAttributes(currentSize, header.size, boldStyle, true)
-				document.setCharacterAttributes(currentSize, now.size, italicStyle, false)
+
+			def log(style: Symbol = 'default)(s: String) = {
+				write(style, 'header)(s"$now >> ")
+				write(style)(s"$s\n")
 			}
 			def log(s: State) {
-				val buffer = new StringBuilder("------------------------------------")
+				val buffer = new StringBuilder("Execution result:")
 				buffer ++= s"\n\tstack: ${s.stack.mkString("[", ",", "]")}"
 				buffer ++= s"\n\tlocals:"
 				for ((k, v) <- s.locals) buffer ++= s"\n\t\t$k: $v"
 				buffer ++= s"\n\tmemory:"
 				for ((k, v) <- s.memory.value) buffer ++= s"\n\t\t$k: $v"
 
-				log(buffer.toString)
+				log('ok)(buffer.toString)
 			}
 		}
 
