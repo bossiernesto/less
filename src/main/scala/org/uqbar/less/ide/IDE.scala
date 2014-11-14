@@ -65,6 +65,7 @@ import scala.swing.ComboBox
 import scala.swing.ListView
 import org.uqbar.less.ide.components._
 import org.uqbar.less.ide.components.StyleAttribute._
+import java.awt.FontMetrics
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -87,14 +88,11 @@ object LessIDE extends SimpleSwingApplication {
 
 			preferredSize = new Dimension(800, 400)
 
-			val fontName = "Ubuntu Mono"
-			val fontSize = 15
-			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
-
 			defineStyle('default)(
-				FontFamily(fontName),
-				FontSize(fontSize),
-				TabSet(new JTabSet((1 to 100).map(i => new TabStop(i * charWidth * 4)).toArray))
+				FontFamily("Ubuntu Mono"),
+				FontSize(16),
+				Bold(),
+				TabWidth(4)
 			)
 
 			reactions += {
@@ -129,37 +127,30 @@ object LessIDE extends SimpleSwingApplication {
 			editable = false
 			background = Color.lightGray.brighter
 
-			val fontName = "Monospace"
-			val fontSize = 10
-			val charWidth = new Font(fontName, Font.PLAIN, fontSize).getStringBounds("w", new FontRenderContext(new AffineTransform, true, true)).getWidth.toInt
-
 			defineStyle('default)(
-				FontFamily(fontName),
-				FontSize(fontSize),
-				TabSet(new JTabSet((1 to 100).map(i => new TabStop(i * charWidth * 2)).toArray))
+				FontFamily("Monospace"),
+				FontSize(10),
+				TabWidth(4)
 			)
 
 			defineStyle('info, 'default)(FontColor(BLUE))
 			defineStyle('warning, 'default)(FontColor(YELLOW.darker))
 			defineStyle('error, 'default)(FontColor(RED))
 			defineStyle('ok, 'default)(FontColor(GREEN.darker))
-			defineStyle('header, 'default)(Italic(true))
-
-			protected def now = new SimpleDateFormat("HH:mm:ss").format(new Date)
+			defineStyle('header, 'default)(Italic())
 
 			def log(style: Symbol = 'default)(s: String) = {
-				write(style, 'header)(s"$now >> ")
+				write(style, 'header)(s"${new SimpleDateFormat("HH:mm:ss").format(new Date)} >> ")
 				write(style)(s"$s\n")
 			}
-			def log(s: State) {
+			def log(s: State): Unit = log('ok){
 				val buffer = new StringBuilder("Execution result:")
 				buffer ++= s"\n\tstack: ${s.stack.mkString("[", ",", "]")}"
 				buffer ++= s"\n\tlocals:"
 				for ((k, v) <- s.locals) buffer ++= s"\n\t\t$k: $v"
 				buffer ++= s"\n\tmemory:"
 				for ((k, v) <- s.memory.value) buffer ++= s"\n\t\t$k: $v"
-
-				log('ok)(buffer.toString)
+				buffer.toString
 			}
 		}
 
