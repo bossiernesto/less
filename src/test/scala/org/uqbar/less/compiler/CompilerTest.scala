@@ -25,7 +25,7 @@ class CompilerTest extends FreeSpec with Matchers with BeforeAndAfter {
         toInput('bar) should beCompiledTo(LOAD('bar))
       }
 
-      "numerics to PUSH" in {
+      "number literals to PUSH" in {
         toInput(42) should beCompiledTo(PUSH(42))
         toInput(-42) should beCompiledTo(PUSH(-42))
       }
