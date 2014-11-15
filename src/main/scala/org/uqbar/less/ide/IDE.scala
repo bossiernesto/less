@@ -5,25 +5,22 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+
 import scala.language.reflectiveCalls
 import scala.swing.Action
 import scala.swing.BorderPanel
 import scala.swing.BorderPanel.Position.Center
-import scala.swing.BorderPanel.Position.East
 import scala.swing.BorderPanel.Position.North
 import scala.swing.BorderPanel.Position.South
-import scala.swing.Component
 import scala.swing.Dimension
 import scala.swing.FileChooser
-import scala.swing.Insets
-import scala.swing.Label
+import scala.swing.FlowPanel
 import scala.swing.MainFrame
-import scala.swing.MenuItem
 import scala.swing.Orientation.Horizontal
 import scala.swing.ScrollPane
-import scala.swing.SequentialContainer
 import scala.swing.SimpleSwingApplication
 import scala.swing.SplitPane
+
 import org.uqbar.less.Bytecode._
 import org.uqbar.less.SemanticModel.Sentence
 import org.uqbar.less.SemanticModel._
@@ -34,16 +31,13 @@ import org.uqbar.less.ide.components.ConfigModal
 import org.uqbar.less.ide.components.Console
 import org.uqbar.less.ide.components.Editor
 import org.uqbar.less.ide.components.EditorParsed
+import org.uqbar.less.ide.components.MenuBar
+import org.uqbar.less.ide.components.StatusBar
+import org.uqbar.less.ide.components.ToolBar
 import org.uqbar.less.obj.eval.Compile
+
 import javax.swing.ImageIcon
-import javax.swing.JToolBar
 import javax.swing.KeyStroke.getKeyStroke
-import scala.swing.Menu
-import scala.swing.MenuBar
-import scala.swing.FlowPanel
-import scala.swing.event.Key
-import scala.swing.Button
-import scala.swing.SequentialContainer.Wrapper
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -56,93 +50,33 @@ object LessIDE extends SimpleSwingApplication {
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-		val saveAction = action("Save", "ctrl S") { saveToFile }
-		val openAction = action("Open", "ctrl O"){ openFile }
-		val configAction = action("Config", "ctrl F"){ config }
-		val runAction = action("Run", "ctrl P"){ runInConsole }
-		val refreshAction = action("Refresh", "ctrl R"){ refresh }
+		menuBar = new MenuBar(
+			"File" -> saveToFile,
+			"File" -> openFile,
+			"File" -> refresh,
+			"Options.Preferences" -> config,
+			"Run" -> run
+		)
 
 		val console = new Console
+
 		val editor = new Editor
 
-		menuBar = menubar(
-			"File" -> saveAction,
-			"File" -> openAction,
-			"File" -> refreshAction,
-			"Options.Preferences" -> configAction,
-			"Run" -> runAction
+		val mainToolBar = new ToolBar(
+			openFile,
+			saveToFile,
+			refresh,
+			run,
+			config
 		)
 
-		val mainToolBar = toolBar(
-			openAction,
-			saveAction,
-			refreshAction,
-			runAction,
-			configAction
-		)
-
-		val statusBar = new BorderPanel {
-			protected val status = new Label
-			protected val okIcon = new ImageIcon(getClass.getResource("/icons/Ok.gif"))
-			protected val errorIcon = new ImageIcon(getClass.getResource("/icons/Error.gif"))
-
-			add(status, East)
-			ok(true)
-
-			def ok(value: Boolean) = if (value) {
-				status.text = "Ok!"
-				status.icon = okIcon
-			} else {
-				status.text = "Error!"
-				status.icon = errorIcon
-			}
-		}
-
-		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-		// GUI BUILD
-		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-		protected def action(name: String, accelerator: String = "")(body: => Unit) = {
-			val action = Action(name)(body)
-			Option(getClass.getResource(s"/icons/$name.gif")).map(image => action.icon = new ImageIcon(image))
-			action.accelerator = Option(getKeyStroke(accelerator))
-			action
-		}
-
-		protected def toolBar(actions: Action*) = new Component with SequentialContainer.Wrapper {
-			override lazy val peer: JToolBar = new JToolBar
-			for (action <- actions) peer.add(new Button(action) { text = "" }.peer)
-		}
-
-		protected def menubar(entries: (String, Action)*) = new MenuBar {
-
-			for ((path, action) <- entries) {
-				def subMenu(name: String, target: Wrapper = this) = target.contents.collectFirst{ case m: Menu if m.text == name => m }
-				def getOrCreateMenu(path: Seq[String], target: Wrapper = this): Wrapper = {
-					path.headOption.fold(target){ nextName =>
-						val next = subMenu(nextName, target).getOrElse{
-							val menu = new Menu(nextName)
-							target.contents += menu
-							menu
-						}
-
-						getOrCreateMenu(path.tail, next)
-					}
-				}
-
-				getOrCreateMenu(path.split('.')).contents += new MenuItem(action)
-			}
-		}
+		val statusBar = new StatusBar
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 		contents = new BorderPanel {
-			add(new FlowPanel(
-				mainToolBar
-			), North)
-
+			add(new FlowPanel(mainToolBar), North)
 			add(new SplitPane(Horizontal, new ScrollPane(editor), new ScrollPane(console)), Center)
-
 			add(statusBar, South)
 		}
 
@@ -152,8 +86,8 @@ object LessIDE extends SimpleSwingApplication {
 		reactions += {
 			case EditorParsed(`editor`, successful) =>
 				statusBar.ok(successful)
-				saveAction.enabled = successful
-				runAction.enabled = successful
+				saveToFile.enabled = successful
+				run.enabled = successful
 		}
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -166,19 +100,7 @@ object LessIDE extends SimpleSwingApplication {
 		// ACTIONS
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-		protected def openFile {
-			val chooser = new FileChooser(WORKSPACE) { title = "Open..." }
-			chooser.showOpenDialog(null)
-			Option(chooser.selectedFile).map{ f =>
-				file = Some(f)
-
-				console.log('info)(s"File opened: $file")
-			}
-
-			refresh
-		}
-
-		protected def saveToFile {
+		lazy val saveToFile = action("Save", "ctrl S") {
 			file = file.fold {
 				val chooser = new FileChooser(WORKSPACE) { title = "Save as..." }
 				chooser.showOpenDialog(null)
@@ -193,10 +115,22 @@ object LessIDE extends SimpleSwingApplication {
 				console.log('info)(s"File saved: $file")
 			}
 
-			refresh
+			refresh()
 		}
 
-		protected def refresh {
+		lazy val openFile = action("Open", "ctrl O"){
+			val chooser = new FileChooser(WORKSPACE) { title = "Open..." }
+			chooser.showOpenDialog(null)
+			Option(chooser.selectedFile).map{ f =>
+				file = Some(f)
+
+				console.log('info)(s"File opened: $file")
+			}
+
+			refresh()
+		}
+
+		lazy val refresh = action("Refresh", "ctrl R"){
 			file.foreach{ file =>
 				val in = new ObjectInputStream(new FileInputStream(file))
 				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*)
@@ -208,9 +142,13 @@ object LessIDE extends SimpleSwingApplication {
 			editor.applyPreferences(preferenceFixture)
 		}
 
-		protected def config = ConfigModal(this, preferenceFixture).map(savePreferences)
+		lazy val config = action("Config", "ctrl F"){
+			ConfigModal(this, preferenceFixture).map(savePreferences)
+		}
 
-		protected def runInConsole: Unit = console log Eval()(Compile(editor.parse.get): _*)
+		lazy val run = action("Run", "ctrl P"){
+			console log Eval()(Compile(editor.parse.get): _*)
+		}
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		// PREFERENCES
@@ -231,7 +169,7 @@ object LessIDE extends SimpleSwingApplication {
 
 			console.log('info)(s"Preferences saved to: $PREFERENCES_FILE")
 
-			refresh
+			refresh()
 		}
 
 		protected def loadPreferences = {
@@ -241,9 +179,20 @@ object LessIDE extends SimpleSwingApplication {
 
 			console.log('info)(s"Preferences loaded from: $PREFERENCES_FILE")
 
-			refresh
+			refresh()
 
 			preferenceFixture
 		}
+	}
+
+	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+	// AUXILIARS
+	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+	protected def action(name: String, accelerator: String = "")(body: => Unit) = {
+		val action = Action(name)(body)
+		Option(getClass.getResource(s"/icons/$name.gif")).map(image => action.icon = new ImageIcon(image))
+		action.accelerator = Option(getKeyStroke(accelerator))
+		action
 	}
 }
