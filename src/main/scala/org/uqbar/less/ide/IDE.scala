@@ -199,47 +199,6 @@ object LessIDE extends SimpleSwingApplication {
 			preferredSize = maximumSize
 		}
 
-		protected def preferenceInput(p: EncodingPreference, currentValue: Any, setPreference: (EncodingPreference, Any) => Unit) = p match {
-
-			case b: BooleanPreference => new CheckBox {
-				selected = b(currentValue)
-				reactions += { case _: ButtonClicked => setPreference(p, selected) }
-			}
-
-			case i @ IntPreference(_, _, None) => new TextField {
-				text = i(currentValue).toString
-				maximumSize = new Dimension(Int.MaxValue, 28)
-				preferredSize = new Dimension(250, 28)
-				listenTo(keys)
-				reactions += {
-					case _: ValueChanged => setPreference(p, text.toInt)
-					case e: KeyTyped if !e.char.isDigit => e.consume
-				}
-			}
-
-			case i @ IntPreference(_, _, Some(range)) => new Slider {
-				labels = (range.min to range.max).map(n => n -> new Label(n.toString)).toMap
-				paintLabels = true
-				min = range.min
-				max = range.max
-				value = i(currentValue)
-				reactions += { case _: ValueChanged => setPreference(p, value) }
-			}
-
-			case s @ StringPreference(_, _, None) => new TextField {
-				text = s(currentValue)
-				maximumSize = new Dimension(Int.MaxValue, 28)
-				preferredSize = new Dimension(250, 28)
-				reactions += { case _: ValueChanged => setPreference(p, text) }
-			}
-
-			case s @ StringPreference(_, _, Some(values)) => new ComboBox(values) {
-				selection.index = values.indexOf(currentValue)
-				listenTo(selection)
-				reactions += { case _: SelectionChanged => setPreference(p, selection.item) }
-			}
-		}
-
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		// ACTIONS
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -276,93 +235,34 @@ object LessIDE extends SimpleSwingApplication {
 			}
 		}
 
-		protected def config {
-			new Dialog(this) {
-				modal = true
-				resizable = false
+		protected def config = ConfigModal(this, preferenceFixture).map(savePreferences)
 
-				var updatedPreferenceFixture = preferenceFixture.copy()
+		protected def runInConsole: Unit = console log Eval()(Compile(editor.parse.get): _*)
 
-				contents = new BorderPanel {
-					val categories = new ListView(updatedPreferenceFixture.categories) {
-						selection.intervalMode = Single
-					}
-					val preferenceDisplay = new BoxPanel(Vertical) {
-						listenTo(categories.selection)
-						reactions += { case SelectionChanged(`categories`) => setContent }
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+		// PREFERENCES
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-						protected def setContent {
-							val category = categories.listData(categories.selection.leadIndex)
-							val preferences = updatedPreferenceFixture.categoryPreferences(category)
+		implicit var preferenceFixture: PreferenceFixture = _
 
-							contents.clear
-							for ((preference, value) <- preferences) {
-								contents += new BoxPanel(Horizontal) {
-									xLayoutAlignment = 0
-									contents ++= Seq(
-										new Label(preference.name + ": ") {
-											horizontalAlignment = Alignment.Right
-											minimumSize = new Dimension(250, 0)
-											maximumSize = new Dimension(250, 28)
-											preferredSize = maximumSize
-										},
-										preferenceInput(preference, value, (p, v) => updatedPreferenceFixture = updatedPreferenceFixture.updated(p, v))
-									)
-								}
-							}
-							revalidate
-							repaint
-						}
-					}
-
-					minimumSize = new Dimension(600, 500)
-					maximumSize = new Dimension(600, 500)
-					preferredSize = maximumSize
-
-					add(new ScrollPane(categories), West)
-					add(new ScrollPane(preferenceDisplay), Center)
-					categories.selectIndices(0)
-
-					add(new BorderPanel {
-						add(new FlowPanel(
-							Button("Cancel"){ close },
-							Button("Accept"){ savePreferences(updatedPreferenceFixture); refresh; close }
-						), East)
-					}, South)
-				}
-
-				centerOnScreen
-				open
-			}
+		if (!WORKSPACE.exists) WORKSPACE.mkdirs
+		if (!(PREFERENCES_FILE.exists && loadPreferences <=> PreferenceFixture.Default)) {
+			savePreferences(PreferenceFixture.Default)
 		}
 
-		protected def runInConsole {
-			console log Eval()(Compile(editor.parse.get): _*)
+		protected def savePreferences(fixture: PreferenceFixture) {
+			val out = new ObjectOutputStream(new FileOutputStream(PREFERENCES_FILE))
+			preferenceFixture = fixture
+			out.writeObject(preferenceFixture)
+			out.close
+			refresh
 		}
-	}
 
-	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-	// PREFERENCES
-	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-	implicit var preferenceFixture: PreferenceFixture = _
-
-	if (!WORKSPACE.exists) WORKSPACE.mkdirs
-	if (!(PREFERENCES_FILE.exists && loadPreferences <=> PreferenceFixture.Default)) {
-		savePreferences(PreferenceFixture.Default)
-	}
-
-	protected def savePreferences(fixture: PreferenceFixture) {
-		val out = new ObjectOutputStream(new FileOutputStream(PREFERENCES_FILE))
-		preferenceFixture = fixture
-		out.writeObject(preferenceFixture)
-		out.close
-	}
-
-	protected def loadPreferences = {
-		val in = new ObjectInputStream(new FileInputStream(PREFERENCES_FILE))
-		preferenceFixture = in.readObject.asInstanceOf[PreferenceFixture]
-		in.close
-		preferenceFixture
+		protected def loadPreferences = {
+			val in = new ObjectInputStream(new FileInputStream(PREFERENCES_FILE))
+			preferenceFixture = in.readObject.asInstanceOf[PreferenceFixture]
+			in.close
+			preferenceFixture
+		}
 	}
 }
