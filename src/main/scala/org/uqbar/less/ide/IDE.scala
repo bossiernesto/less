@@ -90,27 +90,8 @@ object LessIDE extends SimpleSwingApplication {
 		val openAction = menuButton("Open", "ctrl O"){ openFile }
 		val configAction = menuButton("Config", "ctrl F"){ config }
 
-		val editor = new FormattedTextArea {
-
-			preferredSize = new Dimension(800, 400)
-
-			defineStyle('default)(
-				FontFamily("Ubuntu Mono"),
-				FontSize(16),
-				Bold(),
-				TabWidth(4)
-			)
-
-			reactions += {
-				case _: ValueChanged =>
-					val parseResult = parse
-					statusBar.ok(parseResult.successful)
-					saveAction.enabled = parseResult.successful
-					runAction.enabled = parseResult.successful
-			}
-
-			def parse = Parse(peer.getDocument.getText(0, peer.getDocument.getLength))
-		}
+		val console = new Console
+		val editor = new Editor
 
 		val statusBar = new BorderPanel {
 			protected val status = new Label
@@ -129,37 +110,6 @@ object LessIDE extends SimpleSwingApplication {
 			}
 		}
 
-		val console = new FormattedTextArea {
-			editable = false
-			background = Color.lightGray.brighter
-
-			defineStyle('default)(
-				FontFamily("Monospace"),
-				FontSize(10),
-				TabWidth(4)
-			)
-
-			defineStyle('info, 'default)(FontColor(BLUE))
-			defineStyle('warning, 'default)(FontColor(YELLOW.darker))
-			defineStyle('error, 'default)(FontColor(RED))
-			defineStyle('ok, 'default)(FontColor(GREEN.darker))
-			defineStyle('header, 'default)(Italic())
-
-			def log(style: Symbol = 'default)(s: String) = {
-				write(style, 'header)(s"${new SimpleDateFormat("HH:mm:ss").format(new Date)} >> ")
-				write(style)(s"$s\n")
-			}
-			def log(s: State): Unit = log('ok){
-				val buffer = new StringBuilder("Execution result:")
-				buffer ++= s"\n\tstack: ${s.stack.mkString("[", ",", "]")}"
-				buffer ++= s"\n\tlocals:"
-				for ((k, v) <- s.locals) buffer ++= s"\n\t\t$k: $v"
-				buffer ++= s"\n\tmemory:"
-				for ((k, v) <- s.memory.value) buffer ++= s"\n\t\t$k: $v"
-				buffer.toString
-			}
-		}
-
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 		contents = new BorderPanel {
@@ -174,6 +124,16 @@ object LessIDE extends SimpleSwingApplication {
 			add(new SplitPane(Horizontal, new ScrollPane(editor), new ScrollPane(console)), Center)
 
 			add(statusBar, South)
+		}
+
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+		listenTo(editor)
+		reactions += {
+			case EditorParsed(`editor`, successful) =>
+				statusBar.ok(successful)
+				saveAction.enabled = successful
+				runAction.enabled = successful
 		}
 
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
