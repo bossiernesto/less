@@ -51,11 +51,11 @@ object LessIDE extends SimpleSwingApplication {
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 		menuBar = new MenuBar(
-			"File" -> saveToFile,
-			"File" -> openFile,
-			"File" -> refresh,
-			"Options.Preferences" -> config,
-			"Run" -> run
+			"_File" -> saveToFile,
+			"_File" -> openFile,
+			"_File" -> refresh,
+			"_Options._Preferences" -> config,
+			"_Run" -> run
 		)
 
 		val console = new Console
