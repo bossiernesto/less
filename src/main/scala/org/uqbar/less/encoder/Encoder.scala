@@ -16,7 +16,7 @@ trait Encode {
 	def syntax(key: Symbol) = _syntax(key).replace("""\""", """""")
 
 	protected def encode(sentence: Sentence, level: Int = 0)(implicit prefs: PreferenceFixture): String = {
-		val tabulation = (if (prefs("Tabulation", "Tabulate with Tabs")) "\t" else " ") * (level * prefs[Int]("Tabulation", "Tabulation Size"))
+		val tabulation = (if (prefs("Tabulation", "Tabulate with Tabs")) "\t" else " " * prefs[Int]("Tabulation", "Tabulation Size")) * level
 		def s(preferenceName: String, otherCondition: Boolean = true) = if (prefs[Boolean]("Spacing", preferenceName) && otherCondition) " " else ""
 
 		val content = sentence match {

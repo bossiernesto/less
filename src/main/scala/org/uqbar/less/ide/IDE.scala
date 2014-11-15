@@ -169,8 +169,11 @@ object LessIDE extends SimpleSwingApplication {
 		protected def openFile {
 			val chooser = new FileChooser(WORKSPACE) { title = "Open..." }
 			chooser.showOpenDialog(null)
-			file = Option(chooser.selectedFile)
-			console.log('info)(s"File opened: $file")
+			Option(chooser.selectedFile).map{ f =>
+				file = Some(f)
+
+				console.log('info)(s"File opened: $file")
+			}
 
 			refresh
 		}
@@ -186,6 +189,7 @@ object LessIDE extends SimpleSwingApplication {
 				val out = new ObjectOutputStream(new FileOutputStream(file))
 				out.writeObject(editor.parse.get)
 				out.close
+
 				console.log('info)(s"File saved: $file")
 			}
 
@@ -197,8 +201,11 @@ object LessIDE extends SimpleSwingApplication {
 				val in = new ObjectInputStream(new FileInputStream(file))
 				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*)
 				in.close
+
 				console.log('info)(s"File refreshed: $file")
 			}
+
+			editor.applyPreferences(preferenceFixture)
 		}
 
 		protected def config = ConfigModal(this, preferenceFixture).map(savePreferences)
@@ -221,6 +228,7 @@ object LessIDE extends SimpleSwingApplication {
 			preferenceFixture = fixture
 			out.writeObject(preferenceFixture)
 			out.close
+
 			console.log('info)(s"Preferences saved to: $PREFERENCES_FILE")
 
 			refresh
@@ -230,7 +238,10 @@ object LessIDE extends SimpleSwingApplication {
 			val in = new ObjectInputStream(new FileInputStream(PREFERENCES_FILE))
 			preferenceFixture = in.readObject.asInstanceOf[PreferenceFixture]
 			in.close
+
 			console.log('info)(s"Preferences loaded from: $PREFERENCES_FILE")
+
+			refresh
 
 			preferenceFixture
 		}

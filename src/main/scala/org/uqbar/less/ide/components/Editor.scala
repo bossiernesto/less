@@ -5,20 +5,24 @@ import java.awt.Dimension
 import scala.swing.event.ValueChanged
 import org.uqbar.less.parser.Parse
 import scala.swing.event.Event
+import org.uqbar.less.encoder.PreferenceFixture
 
 class Editor extends FormattedTextArea {
 
 	preferredSize = new Dimension(800, 400)
 
-	defineStyle('default)(
-		FontFamily("Ubuntu Mono"),
-		FontSize(16),
-		TabWidth(4)
-	)
-
 	reactions += { case _: ValueChanged => publish(EditorParsed(this, parse.successful)) }
 
 	def parse = Parse(text)
+
+	def applyPreferences(fixture: PreferenceFixture) = {
+		defineStyle('default)(
+			FontFamily("Ubuntu Mono"),
+			FontSize(16),
+			TabWidth(fixture[Int]("Tabulation", "Tabulation Size"))
+		)
+		applyStyle('default, true)()
+	}
 }
 
 //═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
