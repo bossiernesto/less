@@ -3,7 +3,6 @@ package org.uqbar.less.encoder
 import scala.language.implicitConversions
 import org.uqbar.less.SemanticModel._
 import org.uqbar.less.Syntax
-import org.uqbar.less.ide.PreferenceFixture
 
 //TODO: numbers, precedence and identifiers ignores syntax rules
 object Encode extends Encode { def _syntax = Syntax }

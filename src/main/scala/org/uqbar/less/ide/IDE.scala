@@ -56,6 +56,7 @@ import org.uqbar.less.eval.Eval
 import org.uqbar.less.eval.State
 import org.uqbar.less.obj.eval.Compile
 import org.uqbar.less.parser.Parse
+import org.uqbar.less.encoder._
 import javax.swing.ImageIcon
 import javax.swing.JToolBar
 import javax.swing.KeyStroke.getKeyStroke
@@ -66,6 +67,11 @@ import scala.swing.ListView
 import org.uqbar.less.ide.components._
 import org.uqbar.less.ide.components.StyleAttribute._
 import java.awt.FontMetrics
+import org.uqbar.less.encoder.StringPreference
+import org.uqbar.less.encoder.PreferenceFixture
+import org.uqbar.less.encoder.EncodingPreference
+import org.uqbar.less.encoder.IntPreference
+import org.uqbar.less.encoder.BooleanPreference
 
 object LessIDE extends SimpleSwingApplication {
 
@@ -176,9 +182,9 @@ object LessIDE extends SimpleSwingApplication {
 		size = new Dimension(800, 600)
 		centerOnScreen
 
-		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		// GUI BUILD
-		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 		protected def menuButton(itemName: String, keystroke: String = "")(action: => Unit) = new MenuItem(Action("")(action)) {
 			Option(getClass.getResource(s"/icons/$itemName.gif")).fold{ action.title = name }{ r => icon = new ImageIcon(r) }
@@ -193,16 +199,14 @@ object LessIDE extends SimpleSwingApplication {
 			preferredSize = maximumSize
 		}
 
-		protected def preferenceInput(p: Preference[_], currentValue: Any, setPreference: (Preference[_], Any) => Unit) = p match {
+		protected def preferenceInput(p: EncodingPreference, currentValue: Any, setPreference: (EncodingPreference, Any) => Unit) = p match {
 
 			case b: BooleanPreference => new CheckBox {
 				selected = b(currentValue)
-				maximumSize = new Dimension(Int.MaxValue, 28)
-				preferredSize = new Dimension(250, 28)
 				reactions += { case _: ButtonClicked => setPreference(p, selected) }
 			}
 
-			case i @ IntPreference(_, _, _, None) => new TextField {
+			case i @ IntPreference(_, _, None) => new TextField {
 				text = i(currentValue).toString
 				maximumSize = new Dimension(Int.MaxValue, 28)
 				preferredSize = new Dimension(250, 28)
@@ -213,36 +217,32 @@ object LessIDE extends SimpleSwingApplication {
 				}
 			}
 
-			case i @ IntPreference(_, _, _, Some(range)) => new Slider {
+			case i @ IntPreference(_, _, Some(range)) => new Slider {
 				labels = (range.min to range.max).map(n => n -> new Label(n.toString)).toMap
 				paintLabels = true
 				min = range.min
 				max = range.max
 				value = i(currentValue)
-				maximumSize = new Dimension(Int.MaxValue, 32)
-				preferredSize = new Dimension(250, 32)
 				reactions += { case _: ValueChanged => setPreference(p, value) }
 			}
 
-			case s @ StringPreference(_, _, _, None) => new TextField {
+			case s @ StringPreference(_, _, None) => new TextField {
 				text = s(currentValue)
 				maximumSize = new Dimension(Int.MaxValue, 28)
 				preferredSize = new Dimension(250, 28)
 				reactions += { case _: ValueChanged => setPreference(p, text) }
 			}
 
-			case s @ StringPreference(_, _, _, Some(values)) => new ComboBox(values) {
+			case s @ StringPreference(_, _, Some(values)) => new ComboBox(values) {
 				selection.index = values.indexOf(currentValue)
-				maximumSize = new Dimension(Int.MaxValue, 28)
-				preferredSize = new Dimension(250, 28)
 				listenTo(selection)
 				reactions += { case _: SelectionChanged => setPreference(p, selection.item) }
 			}
 		}
 
-		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 		// ACTIONS
-		//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 		protected def openFile {
 			val chooser = new FileChooser(WORKSPACE) { title = "Open..." }
@@ -293,7 +293,7 @@ object LessIDE extends SimpleSwingApplication {
 
 						protected def setContent {
 							val category = categories.listData(categories.selection.leadIndex)
-							val preferences = updatedPreferenceFixture.preferences.filter(_._1.category == category)
+							val preferences = updatedPreferenceFixture.categoryPreferences(category)
 
 							contents.clear
 							for ((preference, value) <- preferences) {
@@ -306,7 +306,7 @@ object LessIDE extends SimpleSwingApplication {
 											maximumSize = new Dimension(250, 28)
 											preferredSize = maximumSize
 										},
-										preferenceInput(preference, value, (p: Preference[_], v: Any) => updatedPreferenceFixture = updatedPreferenceFixture.updated(p, v))
+										preferenceInput(preference, value, (p, v) => updatedPreferenceFixture = updatedPreferenceFixture.updated(p, v))
 									)
 								}
 							}
@@ -341,51 +341,16 @@ object LessIDE extends SimpleSwingApplication {
 		}
 	}
 
-	//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 	// PREFERENCES
-	//═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-	val preferences = Seq(
-		IntPreference("Tabulation Size", "Tabulation", 2, Some(1 to 12)),
-		BooleanPreference("Tabulate with Tabs", "Tabulation", true),
-		BooleanPreference("After if", "Spacing", false),
-		BooleanPreference("Before if condition", "Spacing", false),
-		BooleanPreference("After if condition", "Spacing", false),
-		BooleanPreference("After if argument", "Spacing", true),
-		BooleanPreference("Before else", "Spacing", false),
-		BooleanPreference("After else", "Spacing", false),
-		BooleanPreference("After while", "Spacing", false),
-		BooleanPreference("Before while condition", "Spacing", false),
-		BooleanPreference("After while condition", "Spacing", false),
-		BooleanPreference("After while argument", "Spacing", true),
-		BooleanPreference("After not", "Spacing", false),
-		BooleanPreference("After object name", "Spacing", false),
-		BooleanPreference("After method name", "Spacing", false),
-		BooleanPreference("After method arguments", "Spacing", false),
-		BooleanPreference("Before each method argument", "Spacing", false),
-		BooleanPreference("After each method argument", "Spacing", true),
-		BooleanPreference("Before each array argument", "Spacing", false),
-		BooleanPreference("After each array argument", "Spacing", true),
-		BooleanPreference("Before assign", "Spacing", true),
-		BooleanPreference("After assign", "Spacing", true),
-		BooleanPreference("Before operator", "Spacing", true),
-		BooleanPreference("After operator", "Spacing", true),
-		BooleanPreference("Before array index", "Spacing", false),
-		BooleanPreference("After array index", "Spacing", false),
-		BooleanPreference("After message name", "Spacing", false),
-		BooleanPreference("Before each message argument", "Spacing", false),
-		BooleanPreference("After each message argument", "Spacing", true)
-	)
+	//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 	implicit var preferenceFixture: PreferenceFixture = _
 
-	val defaultPreferenceFixture = PreferenceFixture(preferences.map(p => p -> p.default).toMap)
-
 	if (!WORKSPACE.exists) WORKSPACE.mkdirs
-	if (PREFERENCES_FILE.exists) {
-		loadPreferences
-		if (preferenceFixture.preferences.size != preferences.size) savePreferences(defaultPreferenceFixture)
-	} else savePreferences(defaultPreferenceFixture)
+	if (!(PREFERENCES_FILE.exists && loadPreferences <=> PreferenceFixture.Default)) {
+		savePreferences(PreferenceFixture.Default)
+	}
 
 	protected def savePreferences(fixture: PreferenceFixture) {
 		val out = new ObjectOutputStream(new FileOutputStream(PREFERENCES_FILE))
@@ -394,10 +359,10 @@ object LessIDE extends SimpleSwingApplication {
 		out.close
 	}
 
-	protected def loadPreferences {
+	protected def loadPreferences = {
 		val in = new ObjectInputStream(new FileInputStream(PREFERENCES_FILE))
 		preferenceFixture = in.readObject.asInstanceOf[PreferenceFixture]
 		in.close
+		preferenceFixture
 	}
-
 }
