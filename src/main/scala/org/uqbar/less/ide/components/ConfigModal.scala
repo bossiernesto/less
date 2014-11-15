@@ -92,8 +92,8 @@ object ConfigModal {
 
 			add(new BorderPanel {
 				add(new FlowPanel(
-					Button("Cancel"){ close },
-					Button("Accept"){ preferenceFixture = null; close }
+					Button("Cancel"){ preferenceFixture = null; close },
+					Button("Accept"){ close }
 				), East)
 			}, South)
 		}
