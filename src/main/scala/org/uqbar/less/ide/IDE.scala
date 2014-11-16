@@ -133,7 +133,7 @@ object LessIDE extends SimpleSwingApplication {
 		lazy val refresh = action("Refresh", "ctrl R"){
 			file.foreach{ file =>
 				val in = new ObjectInputStream(new FileInputStream(file))
-				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*)
+				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*).text
 				in.close
 
 				console.log('info)(s"File refreshed: $file")
