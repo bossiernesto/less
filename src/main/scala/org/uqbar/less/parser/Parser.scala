@@ -14,7 +14,9 @@ trait Parse extends RegexParsers {
 	def apply(target: String) = parseAll(program, target)
 
 	protected lazy val identifier = 'identifier ^^ { id => ID(Symbol(id)) }
-	protected lazy val number = 'number ^^ { n => N(n.toInt) }
+	protected lazy val number = 'number ^? {
+		case n if (try { n.toInt; true } catch { case e: NumberFormatException => false }) => N(n.toInt)
+	}
 	protected lazy val array = 'arrayOpen ~> repsep(sentence, 'sentenceSep) <~ 'arrayClose ^^ { A(_) }
 	protected lazy val reference = identifier ^^ { R(_) }
 
