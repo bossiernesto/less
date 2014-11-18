@@ -52,6 +52,7 @@ object LessIDE extends SimpleSwingApplication {
 
 		menuBar = new MenuBar(
 			"_File" -> saveToFile,
+			"_File" -> saveAsFile,
 			"_File" -> openFile,
 			"_File" -> refresh,
 			"_Options._Preferences" -> config,
@@ -100,12 +101,8 @@ object LessIDE extends SimpleSwingApplication {
 		// ACTIONS
 		//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-		lazy val saveToFile = action("Save", "ctrl S") {
-			file = file.fold {
-				val chooser = new FileChooser(WORKSPACE) { title = "Save as..." }
-				chooser.showOpenDialog(null)
-				Option(chooser.selectedFile)
-			}{ _ => file }
+		lazy val saveToFile: Action = action("Save", "ctrl S") {
+			file.fold{ saveAsFile() }{ _ => }
 
 			file.foreach{ file =>
 				val out = new ObjectOutputStream(new FileOutputStream(file))
@@ -116,6 +113,14 @@ object LessIDE extends SimpleSwingApplication {
 			}
 
 			refresh()
+		}
+
+		lazy val saveAsFile = action("Save As") {
+			val chooser = new FileChooser(WORKSPACE) { title = "Save as..." }
+			chooser.showOpenDialog(null)
+			file = Option(chooser.selectedFile)
+
+			file.map{ _ => saveToFile() }
 		}
 
 		lazy val openFile = action("Open", "ctrl O"){
@@ -133,7 +138,7 @@ object LessIDE extends SimpleSwingApplication {
 		lazy val refresh = action("Refresh", "ctrl R"){
 			file.foreach{ file =>
 				val in = new ObjectInputStream(new FileInputStream(file))
-				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*)
+				editor.text = Encode(in.readObject.asInstanceOf[Seq[Sentence]]: _*).text
 				in.close
 
 				console.log('info)(s"File refreshed: $file")
